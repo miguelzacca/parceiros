@@ -490,6 +490,9 @@ function checkOrderState() {
     // Modify Landing Screen
     const infoBadges = document.querySelector('.info-badges');
     if (infoBadges) infoBadges.style.display = 'none';
+    
+    const trackLinkSmall = document.getElementById('track-link-small');
+    if (trackLinkSmall) trackLinkSmall.style.display = 'none';
 
     document.querySelector('.promo-pill').textContent = "Pedido Recebido";
     document.querySelector('.title').innerHTML = "Acompanhe o seu<br><span class=\"text-gradient\">Kit Premium</span>";

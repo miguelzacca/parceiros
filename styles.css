@@ -395,6 +395,22 @@ body {
   color: var(--text-dim);
 }
 
+.track-link-small {
+  display: inline-block;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--brand-pink-light);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 105, 180, 0.4);
+  text-underline-offset: 4px;
+  transition: var(--transition);
+}
+
+.track-link-small:hover {
+  color: #fff;
+  text-decoration-color: #fff;
+}
+
 /* ===== SURVEY ===== */
 .progress-container {
   margin-bottom: 1.5rem;
