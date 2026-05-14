@@ -429,11 +429,46 @@ function validateForm() {
 
 // ===== EVENT LISTENERS =====
 document.addEventListener('DOMContentLoaded', () => {
-  // Start button
-  $('#start-btn').addEventListener('click', () => {
-    switchScreen('survey');
-    renderQuestion();
-  });
+  // Start button & Order Verification
+  const existingOrderStr = localStorage.getItem('wepink_order');
+  let alreadyOrdered = false;
+  let orderProtocol = null;
+  
+  if (existingOrderStr) {
+    try {
+      const existingOrder = JSON.parse(existingOrderStr);
+      if (existingOrder.protocol) {
+        alreadyOrdered = true;
+        orderProtocol = existingOrder.protocol;
+      }
+    } catch(e) {}
+  }
+
+  const startBtn = $('#start-btn');
+  if (alreadyOrdered) {
+    // Modify Landing Screen
+    document.querySelector('.info-badges').style.display = 'none';
+    document.querySelector('.promo-pill').textContent = "Pedido Recebido";
+    document.querySelector('.title').innerHTML = "Acompanhe o seu<br><span class=\"text-gradient\">Kit Premium</span>";
+    document.querySelector('.subtitle').textContent = "Você já garantiu seu kit. Clique no botão abaixo para acompanhar o envio do seu pedido.";
+    
+    startBtn.innerHTML = `
+      <span>Acompanhar Pedido</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </svg>
+    `;
+    startBtn.addEventListener('click', () => {
+      window.location.href = \`/track.html?p=\${orderProtocol}\`;
+    });
+  } else {
+    // Normal Flow
+    startBtn.addEventListener('click', () => {
+      switchScreen('survey');
+      renderQuestion();
+    });
+  }
 
   // Form submit
   $('#claim-form').addEventListener('submit', async (e) => {
