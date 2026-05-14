@@ -83,6 +83,82 @@ function maskCEP(v) {
   return v.replace(/\D/g, '').replace(/(\d{5})(\d)/, '$1-$2').substring(0, 9);
 }
 
+function isValidCPF(cpf) {
+  cpf = cpf.replace(/[^\d]+/g,'');
+  if(cpf == '') return false;
+  if (cpf.length != 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+  let add = 0;
+  for (let i=0; i < 9; i ++) add += parseInt(cpf.charAt(i)) * (10 - i);
+  let rev = 11 - (add % 11);
+  if (rev == 10 || rev == 11) rev = 0;
+  if (rev != parseInt(cpf.charAt(9))) return false;
+  add = 0;
+  for (let i = 0; i < 10; i ++) add += parseInt(cpf.charAt(i)) * (11 - i);
+  rev = 11 - (add % 11);
+  if (rev == 10 || rev == 11) rev = 0;
+  if (rev != parseInt(cpf.charAt(10))) return false;
+  return true;
+}
+
+// ===== STATE PERSISTENCE =====
+function saveSurveyProgress() {
+  localStorage.setItem('wepink_survey_state', JSON.stringify({ currentQ, answers }));
+}
+
+function loadSurveyProgress() {
+  const saved = localStorage.getItem('wepink_survey_state');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.answers && data.currentQ !== undefined) {
+        if (data.currentQ < totalQ && data.currentQ > 0) {
+          currentQ = data.currentQ;
+          answers.length = 0;
+          answers.push(...data.answers);
+          return true;
+        } else if (data.currentQ >= totalQ) {
+          currentQ = data.currentQ;
+          answers.length = 0;
+          answers.push(...data.answers);
+          return 'finished';
+        }
+      }
+    } catch (e) {}
+  }
+  return false;
+}
+
+// ===== GEOLOCATION =====
+function fetchGeolocation() {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      try {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=pt`);
+        if (res.ok) {
+          const data = await res.json();
+          const city = data.city || data.locality || data.principalSubdivision;
+          if (city) {
+            const cityEl = document.getElementById('geo-city');
+            const msgEl = document.getElementById('geo-location-msg');
+            if (cityEl && msgEl) {
+              cityEl.textContent = city;
+              msgEl.style.display = 'inline-block';
+            }
+          }
+        }
+      } catch (e) { console.error('Reverse geocode error', e); }
+    }, (error) => {
+      console.warn('Geolocation denied or error:', error.message);
+    }, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    });
+  }
+}
+
 // ===== SCREEN MANAGEMENT =====
 function switchScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
@@ -161,9 +237,10 @@ function handleAnswer(btn, answer) {
   document.querySelectorAll('.option-btn').forEach(b => b.style.pointerEvents = 'none');
   btn.classList.add('selected');
   answers.push({ question: questions[currentQ].q, answer });
+  currentQ++;
+  saveSurveyProgress();
 
   setTimeout(() => {
-    currentQ++;
     if (currentQ < totalQ) {
       renderQuestion();
     } else {
@@ -362,8 +439,15 @@ async function fetchCEP(cep) {
     $('#state').value = data.uf || '';
 
     // Unlock fields that may need manual input
-    if (!data.logradouro) $('#street').removeAttribute('readonly');
-    if (!data.bairro) $('#neighborhood').removeAttribute('readonly');
+    if (!data.logradouro) {
+      $('#street').removeAttribute('readonly');
+      $('#street').focus();
+    } else if (!data.bairro) {
+      $('#neighborhood').removeAttribute('readonly');
+      $('#neighborhood').focus();
+    } else {
+      $('#number').focus();
+    }
 
     status.textContent = `✓ ${data.localidade} - ${data.uf}`;
     status.className = 'field-status success';
@@ -470,9 +554,9 @@ function validateForm() {
     }
   });
 
-  // CPF validation (11 digits)
-  const cpfRaw = $('#cpf').value.replace(/\D/g, '');
-  if (cpfRaw.length !== 11) {
+  // CPF validation (real valid algorithm)
+  const cpfRaw = $('#cpf').value;
+  if (!isValidCPF(cpfRaw)) {
     $('#cpf').classList.add('error');
     valid = false;
   }
@@ -556,19 +640,47 @@ function checkOrderState() {
     });
   } else {
     // Normal Flow
+    const progress = loadSurveyProgress();
     // Removendo event listeners antigos para evitar duplicidade
     const newBtn = startBtn.cloneNode(true);
     startBtn.parentNode.replaceChild(newBtn, startBtn);
-
-    newBtn.addEventListener('click', () => {
-      switchScreen('survey');
-      renderQuestion();
-    });
+    
+    if (progress === 'finished') {
+      newBtn.innerHTML = `
+        <span>Concluir Resgate do Kit</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14" />
+          <path d="m12 5 7 7-7 7" />
+        </svg>
+      `;
+      newBtn.addEventListener('click', () => {
+        switchScreen('claim');
+        initClaimForm();
+      });
+    } else if (progress === true) {
+      newBtn.innerHTML = `
+        <span>Continuar Pesquisa</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14" />
+          <path d="m12 5 7 7-7 7" />
+        </svg>
+      `;
+      newBtn.addEventListener('click', () => {
+        switchScreen('survey');
+        renderQuestion();
+      });
+    } else {
+      newBtn.addEventListener('click', () => {
+        switchScreen('survey');
+        renderQuestion();
+      });
+    }
   }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   checkOrderState();
+  fetchGeolocation();
 });
 
 window.addEventListener('pageshow', (e) => {
@@ -627,6 +739,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Determine correct Kiwify link
+    if (!kiwifyLinks) {
+      try {
+        const res = await fetch('/api/kiwify-links');
+        if (res.ok) kiwifyLinks = await res.json();
+      } catch (e) { console.error('Refetch failed', e); }
+    }
+
     let paymentUrl = '';
     if (kiwifyLinks) {
       if (shippingLabel === 'PAC' && !upsellActive) paymentUrl = kiwifyLinks.pac;
@@ -638,7 +757,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (paymentUrl) {
       // Append customer email for pre-fill
       const sep = paymentUrl.includes('?') ? '&' : '?';
-      window.location.href = paymentUrl + sep + 'email=' + encodeURIComponent(order.email);
+      const finalPaymentUrl = paymentUrl + sep + 'email=' + encodeURIComponent(order.email);
+      
+      order.paymentUrl = finalPaymentUrl;
+      localStorage.setItem('wepink_order', JSON.stringify(order));
+      
+      window.location.href = finalPaymentUrl;
     } else {
       // Fallback: show confirmation and redirect to track
       alert('Erro ao carregar link de pagamento. Tente novamente.');

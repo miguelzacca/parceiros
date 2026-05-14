@@ -32,6 +32,24 @@ function showPaymentPending() {
   $('prazo-date').textContent = '—';
   $('prazo-sub').textContent = 'O prazo será calculado após a confirmação do pagamento';
   $('status-desc').textContent = 'Estamos aguardando a confirmação do seu pagamento. Isso pode levar alguns instantes.';
+
+  const payBtn = $('pay-now-btn');
+  if (payBtn) {
+    const stored = localStorage.getItem('wepink_order');
+    if (stored) {
+      try {
+        const order = JSON.parse(stored);
+        if (order.paymentUrl) {
+          payBtn.style.display = 'block';
+          payBtn.href = order.paymentUrl;
+        } else {
+          payBtn.style.display = 'none';
+        }
+      } catch(e) { payBtn.style.display = 'none'; }
+    } else {
+      payBtn.style.display = 'none';
+    }
+  }
 }
 
 function showPaymentApproved(data) {
@@ -60,6 +78,9 @@ function showPaymentApproved(data) {
   $('r-total').textContent = data.total ? formatBRL(data.total) : '—';
 
   $('status-desc').textContent = data.status_desc ?? 'Seu pedido foi confirmado e está sendo preparado.';
+
+  const payBtn = $('pay-now-btn');
+  if (payBtn) payBtn.style.display = 'none';
 }
 
 async function search(proto) {
@@ -102,6 +123,16 @@ async function search(proto) {
 }
 
 function renderResult(data) {
+  if (data.payment_status === 'pending') {
+    showPaymentPending();
+    $('r-protocolo').textContent = data.protocolo;
+    $('r-data').textContent = data.data_criacao_formatada ?? '—';
+    $('r-nome').textContent = data.nome ?? '—';
+    $('r-frete').textContent = data.frete_tipo ?? '—';
+    $('r-total').textContent = data.total ? formatBRL(data.total) : '—';
+    return;
+  }
+
   // Badge
   $('status-badge-wrap').innerHTML = `
     <span class="status-badge ${data.status}">
@@ -126,6 +157,9 @@ function renderResult(data) {
 
   $('status-desc').textContent = data.status_desc ?? '';
   $('result-card').classList.add('show');
+
+  const payBtn = $('pay-now-btn');
+  if (payBtn) payBtn.style.display = 'none';
 }
 
 // Poll for payment approval (Kiwify webhook may take a few seconds)
@@ -192,13 +226,19 @@ async function pollForApproval(protocol, maxAttempts = 20) {
 // ===== MAIN FLOW =====
 $('search-btn').addEventListener('click', async () => {
   const data = await search();
-  if (data) renderResult(data);
+  if (data) {
+    if (data.payment_status === 'pending') pollForApproval(data.protocolo);
+    else renderResult(data);
+  }
 });
 
 $('protocol-input').addEventListener('keydown', async e => {
   if (e.key === 'Enter') {
     const data = await search();
-    if (data) renderResult(data);
+    if (data) {
+      if (data.payment_status === 'pending') pollForApproval(data.protocolo);
+      else renderResult(data);
+    }
   }
 });
 
@@ -211,7 +251,10 @@ if (urlProtocol) {
   $('protocol-input').value = urlProtocol;
   (async () => {
     const data = await search(urlProtocol);
-    if (data) renderResult(data);
+    if (data) {
+      if (data.payment_status === 'pending') pollForApproval(urlProtocol);
+      else renderResult(data);
+    }
   })();
 } else {
   // No URL params — likely returning from Kiwify payment redirect
