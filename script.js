@@ -597,6 +597,8 @@ function checkOrderState() {
   const existingOrderStr = localStorage.getItem('wepink_order');
   let alreadyOrdered = false;
   let orderProtocol = null;
+  let paymentStatus = null;
+  let paymentUrl = null;
 
   if (existingOrderStr) {
     try {
@@ -604,6 +606,8 @@ function checkOrderState() {
       if (existingOrder.protocol) {
         alreadyOrdered = true;
         orderProtocol = existingOrder.protocol;
+        paymentStatus = existingOrder.paymentStatus || 'pending';
+        paymentUrl = existingOrder.paymentUrl;
       }
     } catch (e) { }
   }
@@ -611,7 +615,7 @@ function checkOrderState() {
   const startBtn = $('#start-btn');
   if (!startBtn) return; // Prevent errors if DOM not ready
 
-  if (alreadyOrdered) {
+  if (alreadyOrdered && paymentStatus === 'approved') {
     // Modify Landing Screen
     const infoBadges = document.querySelector('.info-badges');
     if (infoBadges) infoBadges.style.display = 'none';
@@ -637,6 +641,36 @@ function checkOrderState() {
 
     newBtn.addEventListener('click', () => {
       window.location.href = `/track?p=${orderProtocol}`;
+    });
+  } else if (alreadyOrdered && paymentStatus === 'pending') {
+    // Modify Landing Screen for Pending Payment
+    const infoBadges = document.querySelector('.info-badges');
+    if (infoBadges) infoBadges.style.display = 'none';
+
+    const trackLinkSmall = document.getElementById('track-link-small');
+    if (trackLinkSmall) trackLinkSmall.style.display = 'none';
+
+    document.querySelector('.promo-pill').textContent = "Pagamento Pendente";
+    document.querySelector('.title').innerHTML = "Finalize o seu<br><span class=\"text-gradient\">Pagamento</span>";
+    document.querySelector('.subtitle').textContent = "Seu kit já está reservado, mas estamos aguardando o pagamento do frete.";
+
+    startBtn.innerHTML = `
+      <span>Finalizar Pagamento</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </svg>
+    `;
+
+    const newBtn = startBtn.cloneNode(true);
+    startBtn.parentNode.replaceChild(newBtn, startBtn);
+
+    newBtn.addEventListener('click', () => {
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+      } else {
+        window.location.href = `/track?p=${orderProtocol}`;
+      }
     });
   } else {
     // Normal Flow
