@@ -35,6 +35,7 @@ const screens = {
   landing: $('#landing-screen'),
   survey: $('#survey-screen'),
   processing: $('#processing-screen'),
+  share: $('#share-screen'),
   claim: $('#claim-screen'),
   confirmation: $('#confirmation-screen')
 };
@@ -246,9 +247,36 @@ function runProcessingAnimation() {
   });
 
   setTimeout(() => {
+    switchScreen('share');
+    initShareScreen();
+  }, 3500);
+}
+
+// ===== SHARE SCREEN =====
+function initShareScreen() {
+  const shareBtn = document.getElementById('wa-share-btn');
+  const continueBtn = document.getElementById('wa-continue-btn');
+  
+  // Reseta os botões
+  shareBtn.style.display = 'flex';
+  continueBtn.style.display = 'none';
+
+  shareBtn.onclick = function() {
+    const text = "Meninas, acabei de responder a pesquisa da Wepink e ganhei um Kit Premium grátis! Corre que ainda dá tempo de pegar o seu: " + window.location.href;
+    const whatsappUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
+    window.open(whatsappUrl, '_blank');
+    
+    // Libera botão continuar após pequeno atraso
+    setTimeout(() => {
+      shareBtn.style.display = 'none';
+      continueBtn.style.display = 'flex';
+    }, 2000);
+  };
+
+  continueBtn.onclick = function() {
     switchScreen('claim');
     initClaimForm();
-  }, 3500);
+  };
 }
 
 // ===== CLAIM FORM =====
