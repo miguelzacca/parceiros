@@ -53,12 +53,14 @@ export default async function handler(req, res) {
   // Tenta migrar a tabela caso ainda esteja na versão antiga
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN status TEXT NOT NULL DEFAULT 'em_processamento'"); } catch(e) {}
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN prazo_entrega TEXT"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN payment_status TEXT DEFAULT 'pending'"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN tracking_code TEXT"); } catch(e) {}
 
   try {
     if (req.method === 'GET') {
       const result = await client.execute({
         sql: `SELECT protocolo, nome, email, frete_tipo, frete_valor, total,
-                     status, prazo_entrega, data_criacao
+                     status, prazo_entrega, data_criacao, payment_status, tracking_code
               FROM pedidos WHERE protocolo = ?`,
         args: [protocolo.toUpperCase()]
       });
@@ -84,7 +86,9 @@ export default async function handler(req, res) {
         prazo_entrega:          row.prazo_entrega,
         prazo_entrega_formatado: formatBR(row.prazo_entrega),
         data_criacao:           row.data_criacao,
-        data_criacao_formatada: formatBR(row.data_criacao)
+        data_criacao_formatada: formatBR(row.data_criacao),
+        payment_status: row.payment_status || 'pending',
+        tracking_code:  row.tracking_code || null
       });
 
     } else if (req.method === 'PATCH') {

@@ -407,6 +407,85 @@ body {
   border-left: 3px solid var(--pink);
 }
 
+/* ── Rastreio block ── */
+.rastreio-block {
+  background: linear-gradient(135deg, rgba(34, 197, 94, .1), rgba(34, 197, 94, .04));
+  border: 1px solid rgba(34, 197, 94, .25);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rastreio-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.rastreio-label {
+  font-size: .78rem;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.rastreio-code {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: 1.5px;
+  font-family: 'Courier New', monospace;
+}
+
+.rastreio-hint {
+  font-size: .72rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.rastreio-hint a {
+  color: var(--pink);
+  text-decoration: none;
+}
+
+.rastreio-hint a:hover {
+  text-decoration: underline;
+}
+
+/* ── Payment status badges ── */
+.status-badge.pending-payment {
+  background: rgba(234, 179, 8, .12);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, .3);
+  animation: pulse-badge 1.5s ease-in-out infinite;
+}
+
+.status-badge.pending-payment .badge-dot {
+  background: #fde047;
+  animation: blink 1s ease-in-out infinite;
+}
+
+.status-badge.approved {
+  background: rgba(34, 197, 94, .12);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, .3);
+}
+
+.status-badge.approved .badge-dot {
+  background: #86efac;
+}
+
+@keyframes pulse-badge {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .7; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
 /* ── Footer ── */
 .footer-note {
   margin-top: 40px;

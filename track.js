@@ -20,82 +20,231 @@ function renderStepper(step) {
   });
 }
 
-async function search() {
-  const raw = $('protocol-input').value.trim().toUpperCase();
+function showPaymentPending() {
+  const card = $('result-card');
+  card.classList.add('show');
+  $('status-badge-wrap').innerHTML = `
+    <span class="status-badge pending-payment">
+      <span class="badge-dot"></span>
+      Aguardando Pagamento...
+    </span>`;
+  renderStepper(0);
+  $('prazo-date').textContent = '—';
+  $('prazo-sub').textContent = 'O prazo será calculado após a confirmação do pagamento';
+  $('status-desc').textContent = 'Estamos aguardando a confirmação do seu pagamento. Isso pode levar alguns instantes.';
+}
+
+function showPaymentApproved(data) {
+  const card = $('result-card');
+  card.classList.add('show');
+
+  $('status-badge-wrap').innerHTML = `
+    <span class="status-badge approved">
+      <span class="badge-dot"></span>
+      Pagamento Aprovado ✓
+    </span>`;
+
+  renderStepper(data.status_step || 1);
+
+  $('prazo-date').textContent = data.prazo_entrega_formatado ?? '—';
+  if (data.frete_tipo && data.frete_tipo.toUpperCase().includes('SEDEX')) {
+    $('prazo-sub').textContent = 'Até 20 dias úteis a partir da confirmação';
+  } else {
+    $('prazo-sub').textContent = 'Até 30 dias úteis a partir da confirmação';
+  }
+
+  $('r-protocolo').textContent = data.protocolo;
+  $('r-data').textContent = data.data_criacao_formatada ?? '—';
+  $('r-nome').textContent = data.nome ?? '—';
+  $('r-frete').textContent = data.frete_tipo ?? '—';
+  $('r-total').textContent = data.total ? formatBRL(data.total) : '—';
+
+  // Show tracking code if available
+  if (data.tracking_code) {
+    $('r-rastreio').textContent = data.tracking_code;
+    $('rastreio-block').style.display = 'block';
+  }
+
+  $('status-desc').textContent = data.status_desc ?? 'Seu pedido foi confirmado e está sendo preparado.';
+}
+
+async function search(proto) {
+  const protocol = proto || $('protocol-input').value.trim().toUpperCase();
   const btn = $('search-btn');
   const errEl = $('search-error');
 
   errEl.classList.remove('show');
   $('result-card').classList.remove('show');
 
-  if (!raw) {
+  if (!protocol) {
     errEl.textContent = 'Digite o código de protocolo.';
     errEl.classList.add('show');
-    return;
+    return null;
   }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>';
 
   try {
-    const res = await fetch(`/api/order/${encodeURIComponent(raw)}`);
+    const res = await fetch(`/api/order/${encodeURIComponent(protocol)}`);
     const data = await res.json();
 
     if (!res.ok) {
       errEl.textContent = data.error ?? 'Pedido não encontrado.';
       errEl.classList.add('show');
-      return;
+      return null;
     }
 
-    // Badge
-    $('status-badge-wrap').innerHTML = `
-      <span class="status-badge ${data.status}">
-        <span class="badge-dot"></span>
-        ${data.status_label}
-      </span>`;
-
-    // Stepper
-    renderStepper(data.status_step);
-
-    // Prazo
-    $('prazo-date').textContent = data.prazo_entrega_formatado ?? '—';
-    if (data.frete_tipo && data.frete_tipo.toUpperCase().includes('SEDEX')) {
-      $('prazo-sub').textContent = 'Até 20 dias úteis a partir da confirmação';
-    } else {
-      $('prazo-sub').textContent = 'Até 30 dias úteis a partir da confirmação';
-    }
-
-    // Info
-    $('r-protocolo').textContent = data.protocolo;
-    $('r-data').textContent = data.data_criacao_formatada ?? '—';
-    $('r-nome').textContent = data.nome ?? '—';
-    $('r-frete').textContent = data.frete_tipo ?? '—';
-    $('r-total').textContent = data.total ? formatBRL(data.total) : '—';
-
-    // Desc
-    $('status-desc').textContent = data.status_desc ?? '';
-
-    $('result-card').classList.add('show');
+    return data;
 
   } catch (err) {
     errEl.textContent = 'Erro de conexão. Tente novamente.';
     errEl.classList.add('show');
+    return null;
   } finally {
     btn.disabled = false;
     btn.textContent = 'Buscar';
   }
 }
 
-$('search-btn').addEventListener('click', search);
-$('protocol-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') search();
+function renderResult(data) {
+  // Badge
+  $('status-badge-wrap').innerHTML = `
+    <span class="status-badge ${data.status}">
+      <span class="badge-dot"></span>
+      ${data.status_label}
+    </span>`;
+
+  renderStepper(data.status_step);
+
+  $('prazo-date').textContent = data.prazo_entrega_formatado ?? '—';
+  if (data.frete_tipo && data.frete_tipo.toUpperCase().includes('SEDEX')) {
+    $('prazo-sub').textContent = 'Até 20 dias úteis a partir da confirmação';
+  } else {
+    $('prazo-sub').textContent = 'Até 30 dias úteis a partir da confirmação';
+  }
+
+  $('r-protocolo').textContent = data.protocolo;
+  $('r-data').textContent = data.data_criacao_formatada ?? '—';
+  $('r-nome').textContent = data.nome ?? '—';
+  $('r-frete').textContent = data.frete_tipo ?? '—';
+  $('r-total').textContent = data.total ? formatBRL(data.total) : '—';
+
+  // Show tracking code if available
+  if (data.tracking_code) {
+    $('r-rastreio').textContent = data.tracking_code;
+    $('rastreio-block').style.display = 'block';
+  }
+
+  $('status-desc').textContent = data.status_desc ?? '';
+  $('result-card').classList.add('show');
+}
+
+// Poll for payment approval (Kiwify webhook may take a few seconds)
+async function pollForApproval(protocol, maxAttempts = 20) {
+  const statusMsg = $('status-desc');
+  let attempt = 0;
+
+  showPaymentPending();
+  $('protocol-input').value = protocol;
+
+  // Fill basic info from localStorage while waiting
+  const stored = localStorage.getItem('wepink_order');
+  if (stored) {
+    try {
+      const order = JSON.parse(stored);
+      $('r-protocolo').textContent = order.protocol;
+      $('r-nome').textContent = order.name ?? '—';
+      $('r-frete').textContent = order.shipping ?? '—';
+      $('r-total').textContent = order.total ? formatBRL(order.total) : '—';
+    } catch(e) {}
+  }
+
+  const poll = async () => {
+    attempt++;
+    statusMsg.textContent = `Verificando pagamento... (tentativa ${attempt}/${maxAttempts})`;
+
+    const data = await search(protocol);
+    if (!data) {
+      if (attempt < maxAttempts) {
+        setTimeout(poll, 3000);
+      } else {
+        statusMsg.textContent = 'Não foi possível confirmar o pagamento. Se você já pagou, aguarde alguns minutos e atualize a página.';
+      }
+      return;
+    }
+
+    if (data.payment_status === 'approved') {
+      // Payment confirmed!
+      showPaymentApproved(data);
+
+      // Update localStorage
+      const storedOrder = localStorage.getItem('wepink_order');
+      if (storedOrder) {
+        try {
+          const order = JSON.parse(storedOrder);
+          order.paymentStatus = 'approved';
+          order.trackingCode = data.tracking_code;
+          localStorage.setItem('wepink_order', JSON.stringify(order));
+        } catch(e) {}
+      }
+      return;
+    }
+
+    // Still pending
+    if (attempt < maxAttempts) {
+      setTimeout(poll, 3000);
+    } else {
+      statusMsg.textContent = 'Pagamento ainda não confirmado. Se você já pagou, aguarde alguns minutos e atualize a página.';
+    }
+  };
+
+  poll();
+}
+
+// ===== MAIN FLOW =====
+$('search-btn').addEventListener('click', async () => {
+  const data = await search();
+  if (data) renderResult(data);
 });
 
-// Auto-preenche se vier protocolo na URL: ?p=WPK-XXXXXXXX
-// Auto-preenche se vier protocolo na URL: ?p=WPK-XXXXXXXX
+$('protocol-input').addEventListener('keydown', async e => {
+  if (e.key === 'Enter') {
+    const data = await search();
+    if (data) renderResult(data);
+  }
+});
+
+// Check URL params first
 const params = new URLSearchParams(window.location.search);
-const p = params.get('p');
-if (p) {
-  $('protocol-input').value = p;
-  search();
+const urlProtocol = params.get('p');
+
+if (urlProtocol) {
+  // Came from direct link with protocol
+  $('protocol-input').value = urlProtocol;
+  (async () => {
+    const data = await search(urlProtocol);
+    if (data) renderResult(data);
+  })();
+} else {
+  // No URL params — likely returning from Kiwify payment redirect
+  const stored = localStorage.getItem('wepink_order');
+  if (stored) {
+    try {
+      const order = JSON.parse(stored);
+      if (order.protocol && order.paymentStatus === 'pending') {
+        // Start polling for payment confirmation
+        pollForApproval(order.protocol);
+      } else if (order.protocol && order.paymentStatus === 'approved') {
+        // Already approved, just show the result
+        $('protocol-input').value = order.protocol;
+        (async () => {
+          const data = await search(order.protocol);
+          if (data) renderResult(data);
+        })();
+      }
+    } catch(e) {
+      console.error('Error parsing stored order:', e);
+    }
+  }
 }

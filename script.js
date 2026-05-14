@@ -27,9 +27,19 @@ let currentQ = 0;
 const totalQ = questions.length;
 const answers = [];
 let selectedShipping = null;
-let shippingPrices = { standard: 0, express: 0 };
+const FIXED_PRICES = { standard: 23.00, express: 27.00 };
 let upsellActive = false;
 const UPSELL_PRICE = 3.00;
+
+// Kiwify payment links (injected via API)
+let kiwifyLinks = null;
+async function loadKiwifyLinks() {
+  try {
+    const res = await fetch('/api/kiwify-links');
+    if (res.ok) kiwifyLinks = await res.json();
+  } catch(e) { console.error('Failed to load kiwify links', e); }
+}
+loadKiwifyLinks();
 
 // ===== DOM =====
 const $ = (sel) => document.querySelector(sel);
@@ -44,63 +54,9 @@ const screens = {
 
 // ===== UTILS =====
 
-// CEP prefix → regional freight modifier (R$)
-// Based on real Correios zone proximity to SP (main warehouse)
-const CEP_REGION_MAP = [
-  { prefix: [1, 9], label: 'São Paulo (Capital/Interior)', mod: 0.00 },
-  { prefix: [10, 19], label: 'São Paulo (Interior)', mod: 0.50 },
-  { prefix: [20, 28], label: 'Rio de Janeiro', mod: 1.50 },
-  { prefix: [29, 29], label: 'Espírito Santo', mod: 2.00 },
-  { prefix: [30, 39], label: 'Minas Gerais', mod: 1.80 },
-  { prefix: [40, 48], label: 'Bahia', mod: 3.50 },
-  { prefix: [49, 49], label: 'Sergipe', mod: 3.80 },
-  { prefix: [50, 56], label: 'Pernambuco', mod: 4.00 },
-  { prefix: [57, 57], label: 'Alagoas', mod: 4.20 },
-  { prefix: [58, 58], label: 'Paraíba', mod: 4.30 },
-  { prefix: [59, 59], label: 'Rio Grande do Norte', mod: 4.50 },
-  { prefix: [60, 63], label: 'Ceará', mod: 4.80 },
-  { prefix: [64, 64], label: 'Piauí', mod: 5.00 },
-  { prefix: [65, 65], label: 'Maranhão', mod: 5.20 },
-  { prefix: [66, 68], label: 'Pará / Amapá', mod: 5.80 },
-  { prefix: [69, 69], label: 'Amazonas / Roraima', mod: 6.50 },
-  { prefix: [70, 73], label: 'Distrito Federal / Goiás', mod: 3.00 },
-  { prefix: [74, 76], label: 'Goiás', mod: 3.20 },
-  { prefix: [77, 77], label: 'Tocantins', mod: 4.00 },
-  { prefix: [78, 78], label: 'Mato Grosso', mod: 4.50 },
-  { prefix: [79, 79], label: 'Mato Grosso do Sul', mod: 3.80 },
-  { prefix: [80, 87], label: 'Paraná', mod: 2.00 },
-  { prefix: [88, 89], label: 'Santa Catarina', mod: 2.50 },
-  { prefix: [90, 99], label: 'Rio Grande do Sul', mod: 3.00 },
-];
-
-function getRegionModifier(cepRaw) {
-  const prefix = parseInt(cepRaw.substring(0, 2), 10);
-  for (const region of CEP_REGION_MAP) {
-    const [min, max] = region.prefix;
-    if (prefix >= min && prefix <= max) return region.mod;
-  }
-  return 3.00; // fallback
-}
-
-function getOrCreateShippingPrice(cepRaw) {
-  const storageKey = 'wepink_shipping_' + (cepRaw || 'default');
-  const stored = localStorage.getItem(storageKey);
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      if (parsed.standard && parsed.express) return parsed;
-    } catch (e) { /* regenerate */ }
-  }
-  const mod = getRegionModifier(cepRaw || '01');
-  // Base: R$23 + regional modifier + small jitter (0–2)
-  const jitter = Math.random() * 2;
-  const rawStandard = 23 + mod + jitter;
-  const standard = Math.round(Math.min(rawStandard, 30.00) * 100) / 100;
-  const expressExtra = 5 + Math.random() * 4; // SEDEX R$5–9 above PAC
-  const express = Math.round(Math.min(standard + expressExtra, 39.90) * 100) / 100;
-  const prices = { standard, express, cep: cepRaw };
-  localStorage.setItem(storageKey, JSON.stringify(prices));
-  return prices;
+// Fixed shipping prices
+function getFixedShippingPrices() {
+  return { standard: FIXED_PRICES.standard, express: FIXED_PRICES.express };
 }
 
 function formatBRL(val) {
@@ -283,8 +239,6 @@ function initShareScreen() {
 
 // ===== CLAIM FORM =====
 function initClaimForm() {
-  // Initial price placeholder — will be recalculated with real CEP
-  shippingPrices = getOrCreateShippingPrice('01310');
   setupMasks();
   setupCEPSearch();
   setupUpsell();
@@ -414,8 +368,6 @@ async function fetchCEP(cep) {
     status.textContent = `✓ ${data.localidade} - ${data.uf}`;
     status.className = 'field-status success';
 
-    // Recalculate prices for this specific CEP
-    shippingPrices = getOrCreateShippingPrice(cep);
     renderShippingOptions();
   } catch (err) {
     status.textContent = 'Erro ao buscar CEP. Tente novamente.';
@@ -431,6 +383,7 @@ function renderShippingOptions() {
   if (summary) summary.style.display = 'none';
 
   const container = $('#shipping-options');
+  const prices = getFixedShippingPrices();
   container.innerHTML = `
     <div class="shipping-card" data-type="standard" id="ship-standard">
       <div class="shipping-radio"><div class="shipping-radio-dot"></div></div>
@@ -438,7 +391,7 @@ function renderShippingOptions() {
         <div class="shipping-name">📦 PAC — Econômico</div>
         <div class="shipping-detail">Entrega em 20 a 30 dias úteis</div>
       </div>
-      <div class="shipping-price">${formatBRL(shippingPrices.standard)}</div>
+      <div class="shipping-price">${formatBRL(prices.standard)}</div>
     </div>
     <div class="shipping-card" data-type="express" id="ship-express">
       <div class="shipping-radio"><div class="shipping-radio-dot"></div></div>
@@ -446,7 +399,7 @@ function renderShippingOptions() {
         <div class="shipping-name">🚀 SEDEX — Rápido</div>
         <div class="shipping-detail">Entrega em 14 a 20 dias úteis</div>
       </div>
-      <div class="shipping-price">${formatBRL(shippingPrices.express)}</div>
+      <div class="shipping-price">${formatBRL(prices.express)}</div>
     </div>
   `;
 
@@ -468,14 +421,14 @@ function selectShipping(type) {
 }
 
 function updateOrderSummary() {
-  const price = selectedShipping === 'express' ? shippingPrices.express : shippingPrices.standard;
+  const prices = getFixedShippingPrices();
+  const price = selectedShipping === 'express' ? prices.express : prices.standard;
   const label = selectedShipping === 'express' ? 'Frete SEDEX' : 'Frete PAC';
   const total = upsellActive ? price + UPSELL_PRICE : price;
 
   const summary = $('#order-summary');
   summary.style.display = 'block';
 
-  // Rebuild summary rows dynamically
   summary.innerHTML = `
     <h4 class="form-section-title">
       <span class="section-icon">🧾</span> Resumo
@@ -634,11 +587,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.innerHTML = '<div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0;"></div>';
     btn.disabled = true;
 
-    const price = selectedShipping === 'express' ? shippingPrices.express : shippingPrices.standard;
+    const prices = getFixedShippingPrices();
+    const price = selectedShipping === 'express' ? prices.express : prices.standard;
     const shippingLabel = selectedShipping === 'express' ? 'SEDEX' : 'PAC';
     const totalPrice = upsellActive ? price + UPSELL_PRICE : price;
 
-    // Save order to localStorage
+    // Build order object
     const order = {
       protocol: generateProtocol(),
       name: $('#fullname').value,
@@ -654,12 +608,15 @@ document.addEventListener('DOMContentLoaded', () => {
       upsellPrice: upsellActive ? UPSELL_PRICE : 0,
       total: totalPrice,
       answers: answers,
+      paymentStatus: 'pending',
       timestamp: new Date().toISOString()
     };
+
+    // Save to localStorage BEFORE redirect (Kiwify will redirect back)
     localStorage.setItem('wepink_order', JSON.stringify(order));
 
+    // Save to DB
     try {
-      // Send to Vercel API
       await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -669,21 +626,25 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Erro ao salvar no banco:', err);
     }
 
-    setTimeout(() => {
-      // Fill confirmation
-      $('#conf-protocol').textContent = order.protocol;
-      $('#conf-name').textContent = order.name;
-      $('#conf-address').textContent = `${$('#city').value}/${$('#state').value}`;
-      $('#conf-shipping').textContent = `${shippingLabel} — ${formatBRL(price)}`;
-      $('#conf-total').textContent = formatBRL(totalPrice);
+    // Determine correct Kiwify link
+    let paymentUrl = '';
+    if (kiwifyLinks) {
+      if (shippingLabel === 'PAC' && !upsellActive) paymentUrl = kiwifyLinks.pac;
+      else if (shippingLabel === 'PAC' && upsellActive) paymentUrl = kiwifyLinks.pac_upsell;
+      else if (shippingLabel === 'SEDEX' && !upsellActive) paymentUrl = kiwifyLinks.sedex;
+      else paymentUrl = kiwifyLinks.sedex_upsell;
+    }
 
-      switchScreen('confirmation');
-
-      // Redireciona para a página de rastreamento após 4 segundos
-      setTimeout(() => {
-        window.location.href = `/track?p=${encodeURIComponent(order.protocol)}`;
-      }, 4000);
-    }, 1000);
+    if (paymentUrl) {
+      // Append customer email for pre-fill
+      const sep = paymentUrl.includes('?') ? '&' : '?';
+      window.location.href = paymentUrl + sep + 'email=' + encodeURIComponent(order.email);
+    } else {
+      // Fallback: show confirmation and redirect to track
+      alert('Erro ao carregar link de pagamento. Tente novamente.');
+      btn.innerHTML = '<span>Finalizar Pedido</span>';
+      btn.disabled = false;
+    }
   });
 
   // Remove error class on input

@@ -78,7 +78,7 @@
       ]
     },
     frete_e_prazo: {
-      msg: "O valor do frete é calculado de acordo com sua região e os envios são feitos via Correios (PAC ou SEDEX). O prazo de entrega varia de 14 a 30 dias úteis, dependendo da modalidade escolhida. Assim que for despachado, você recebe o código de rastreio dos Correios!",
+      msg: "O frete é fixo: PAC (Econômico) por R$ 23,00 com entrega em 20-30 dias úteis, ou SEDEX (Rápido) por R$ 27,00 com entrega em 14-20 dias úteis. Os envios são feitos via Correios. Assim que for despachado, você recebe o código de rastreio!",
       opts: [
         { label: "Voltar ao Início", target: "start" }
       ]

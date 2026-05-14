@@ -43,6 +43,9 @@ export default async function handler(req, res) {
       respostas     TEXT,
       status        TEXT    NOT NULL DEFAULT 'em_processamento',
       prazo_entrega TEXT,
+      payment_status TEXT   DEFAULT 'pending',
+      tracking_code  TEXT,
+      kiwify_order_id TEXT,
       data_criacao  TEXT    NOT NULL DEFAULT (datetime('now'))
     )
   `);
@@ -50,6 +53,9 @@ export default async function handler(req, res) {
   // Tenta adicionar as colunas novas caso a tabela já existisse de uma versão anterior
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN status TEXT NOT NULL DEFAULT 'em_processamento'"); } catch(e) {}
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN prazo_entrega TEXT"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN payment_status TEXT DEFAULT 'pending'"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN tracking_code TEXT"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN kiwify_order_id TEXT"); } catch(e) {}
 
   try {
     if (req.method === 'POST') {
