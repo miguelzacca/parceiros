@@ -28,6 +28,8 @@ const totalQ = questions.length;
 const answers = [];
 let selectedShipping = null;
 let shippingPrices = { standard: 0, express: 0 };
+let upsellActive = false;
+const UPSELL_PRICE = 3.00;
 
 // ===== DOM =====
 const $ = (sel) => document.querySelector(sel);
@@ -256,16 +258,16 @@ function runProcessingAnimation() {
 function initShareScreen() {
   const shareBtn = document.getElementById('wa-share-btn');
   const continueBtn = document.getElementById('wa-continue-btn');
-  
+
   // Reseta os botões
   shareBtn.style.display = 'flex';
   continueBtn.style.display = 'none';
 
-  shareBtn.onclick = function() {
+  shareBtn.onclick = function () {
     const text = "Meninas, acabei de responder a pesquisa da Wepink e ganhei um Kit Premium grátis! Corre que ainda dá tempo de pegar o seu: " + window.location.href;
     const whatsappUrl = "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
     window.open(whatsappUrl, '_blank');
-    
+
     // Libera botão continuar após pequeno atraso
     setTimeout(() => {
       shareBtn.style.display = 'none';
@@ -273,7 +275,7 @@ function initShareScreen() {
     }, 2000);
   };
 
-  continueBtn.onclick = function() {
+  continueBtn.onclick = function () {
     switchScreen('claim');
     initClaimForm();
   };
@@ -285,6 +287,26 @@ function initClaimForm() {
   shippingPrices = getOrCreateShippingPrice('01310');
   setupMasks();
   setupCEPSearch();
+  setupUpsell();
+}
+
+function setupUpsell() {
+  const checkbox = document.getElementById('upsell-checkbox');
+  const pixField = document.getElementById('upsell-pix-field');
+  const card = document.getElementById('upsell-card');
+
+  if (!checkbox) return;
+
+  checkbox.addEventListener('change', () => {
+    upsellActive = checkbox.checked;
+    pixField.style.display = upsellActive ? 'block' : 'none';
+    card.classList.toggle('active', upsellActive);
+
+    // Re-render the summary if shipping is already selected
+    if (selectedShipping) {
+      updateOrderSummary();
+    }
+  });
 }
 
 function setupMasks() {
@@ -439,18 +461,45 @@ function selectShipping(type) {
   document.querySelectorAll('.shipping-card').forEach(c => c.classList.remove('selected'));
   document.querySelector(`.shipping-card[data-type="${type}"]`).classList.add('selected');
 
-  const price = type === 'express' ? shippingPrices.express : shippingPrices.standard;
-  const label = type === 'express' ? 'Frete SEDEX' : 'Frete PAC';
-
-  // Show and update summary
-  const summary = $('#order-summary');
-  summary.style.display = 'block';
-  $('#summary-shipping-label').textContent = label;
-  $('#summary-shipping-value').textContent = formatBRL(price);
-  $('#summary-total').textContent = formatBRL(price);
+  updateOrderSummary();
 
   // Enable submit
   $('#submit-btn').disabled = false;
+}
+
+function updateOrderSummary() {
+  const price = selectedShipping === 'express' ? shippingPrices.express : shippingPrices.standard;
+  const label = selectedShipping === 'express' ? 'Frete SEDEX' : 'Frete PAC';
+  const total = upsellActive ? price + UPSELL_PRICE : price;
+
+  const summary = $('#order-summary');
+  summary.style.display = 'block';
+
+  // Rebuild summary rows dynamically
+  summary.innerHTML = `
+    <h4 class="form-section-title">
+      <span class="section-icon">🧾</span> Resumo
+    </h4>
+    <div class="summary-row">
+      <span>Kit VF Choices Delight (3 itens)</span>
+      <span class="summary-value free-tag">GRÁTIS</span>
+    </div>
+    <div class="summary-row" id="summary-shipping-row">
+      <span id="summary-shipping-label">${label}</span>
+      <span class="summary-value" id="summary-shipping-value">${formatBRL(price)}</span>
+    </div>
+    ${upsellActive ? `
+    <div class="summary-row">
+      <span>🎰 Sorteio PIX R$ 1.000</span>
+      <span class="summary-value upsell-tag">${formatBRL(UPSELL_PRICE)}</span>
+    </div>
+    ` : ''}
+    <div class="summary-divider"></div>
+    <div class="summary-row summary-total">
+      <span>Total</span>
+      <span class="summary-value" id="summary-total">${formatBRL(total)}</span>
+    </div>
+  `;
 }
 
 // ===== FORM VALIDATION & SUBMISSION =====
@@ -491,6 +540,17 @@ function validateForm() {
 
   if (!selectedShipping) valid = false;
 
+  // PIX key validation if upsell is active
+  if (upsellActive) {
+    const pixKey = document.getElementById('pix-key');
+    if (pixKey && !pixKey.value.trim()) {
+      pixKey.classList.add('error');
+      valid = false;
+    } else if (pixKey) {
+      pixKey.classList.remove('error');
+    }
+  }
+
   return valid;
 }
 
@@ -518,7 +578,7 @@ function checkOrderState() {
     // Modify Landing Screen
     const infoBadges = document.querySelector('.info-badges');
     if (infoBadges) infoBadges.style.display = 'none';
-    
+
     const trackLinkSmall = document.getElementById('track-link-small');
     if (trackLinkSmall) trackLinkSmall.style.display = 'none';
 
@@ -576,6 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const price = selectedShipping === 'express' ? shippingPrices.express : shippingPrices.standard;
     const shippingLabel = selectedShipping === 'express' ? 'SEDEX' : 'PAC';
+    const totalPrice = upsellActive ? price + UPSELL_PRICE : price;
 
     // Save order to localStorage
     const order = {
@@ -588,7 +649,10 @@ document.addEventListener('DOMContentLoaded', () => {
       complement: $('#complement').value,
       shipping: shippingLabel,
       shippingPrice: price,
-      total: price,
+      upsellPix: upsellActive,
+      upsellPixKey: upsellActive ? ($('#pix-key') ? $('#pix-key').value : '') : null,
+      upsellPrice: upsellActive ? UPSELL_PRICE : 0,
+      total: totalPrice,
       answers: answers,
       timestamp: new Date().toISOString()
     };
@@ -611,7 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
       $('#conf-name').textContent = order.name;
       $('#conf-address').textContent = `${$('#city').value}/${$('#state').value}`;
       $('#conf-shipping').textContent = `${shippingLabel} — ${formatBRL(price)}`;
-      $('#conf-total').textContent = formatBRL(price);
+      $('#conf-total').textContent = formatBRL(totalPrice);
 
       switchScreen('confirmation');
 
