@@ -460,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </svg>
     `;
     startBtn.addEventListener('click', () => {
-      window.location.href = \`/track.html?p=\${orderProtocol}\`;
+      window.location.href = `/track.html?p=${orderProtocol}`;
     });
   } else {
     // Normal Flow
