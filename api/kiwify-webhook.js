@@ -82,25 +82,22 @@ export default async function handler(req, res) {
       }
 
       const row = result.rows[0];
-      const trackingCode = generateTrackingCode(row.frete_tipo);
       const kiwifyOrderId = event.order_id || event.subscription_id || '';
 
-      // Update order: mark as paid, generate tracking code, update status
+      // Update order: mark as paid
       await client.execute({
         sql: `UPDATE pedidos 
               SET payment_status = 'approved', 
-                  tracking_code = ?,
                   kiwify_order_id = ?,
                   status = 'em_processamento'
               WHERE protocolo = ?`,
-        args: [trackingCode, kiwifyOrderId, row.protocolo]
+        args: [kiwifyOrderId, row.protocolo]
       });
 
-      console.log(`[kiwify-webhook] Order ${row.protocolo} approved. Tracking: ${trackingCode}`);
+      console.log(`[kiwify-webhook] Order ${row.protocolo} approved.`);
       return res.status(200).json({ 
         received: true, 
-        protocolo: row.protocolo, 
-        tracking_code: trackingCode 
+        protocolo: row.protocolo
       });
 
     } else if (orderStatus === 'refunded' || orderStatus === 'chargedback') {

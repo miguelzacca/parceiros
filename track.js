@@ -59,12 +59,6 @@ function showPaymentApproved(data) {
   $('r-frete').textContent = data.frete_tipo ?? '—';
   $('r-total').textContent = data.total ? formatBRL(data.total) : '—';
 
-  // Show tracking code if available
-  if (data.tracking_code) {
-    $('r-rastreio').textContent = data.tracking_code;
-    $('rastreio-block').style.display = 'block';
-  }
-
   $('status-desc').textContent = data.status_desc ?? 'Seu pedido foi confirmado e está sendo preparado.';
 }
 
@@ -130,12 +124,6 @@ function renderResult(data) {
   $('r-frete').textContent = data.frete_tipo ?? '—';
   $('r-total').textContent = data.total ? formatBRL(data.total) : '—';
 
-  // Show tracking code if available
-  if (data.tracking_code) {
-    $('r-rastreio').textContent = data.tracking_code;
-    $('rastreio-block').style.display = 'block';
-  }
-
   $('status-desc').textContent = data.status_desc ?? '';
   $('result-card').classList.add('show');
 }
@@ -184,7 +172,6 @@ async function pollForApproval(protocol, maxAttempts = 20) {
         try {
           const order = JSON.parse(storedOrder);
           order.paymentStatus = 'approved';
-          order.trackingCode = data.tracking_code;
           localStorage.setItem('wepink_order', JSON.stringify(order));
         } catch(e) {}
       }
