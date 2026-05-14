@@ -386,7 +386,7 @@ function renderShippingOptions() {
       <div class="shipping-radio"><div class="shipping-radio-dot"></div></div>
       <div class="shipping-info">
         <div class="shipping-name">📦 PAC — Econômico</div>
-        <div class="shipping-detail">Entrega em 10 a 15 dias úteis</div>
+        <div class="shipping-detail">Entrega em 20 a 30 dias úteis</div>
       </div>
       <div class="shipping-price">${formatBRL(shippingPrices.standard)}</div>
     </div>
@@ -394,7 +394,7 @@ function renderShippingOptions() {
       <div class="shipping-radio"><div class="shipping-radio-dot"></div></div>
       <div class="shipping-info">
         <div class="shipping-name">🚀 SEDEX — Rápido</div>
-        <div class="shipping-detail">Entrega em 3 a 7 dias úteis</div>
+        <div class="shipping-detail">Entrega em 14 a 20 dias úteis</div>
       </div>
       <div class="shipping-price">${formatBRL(shippingPrices.express)}</div>
     </div>

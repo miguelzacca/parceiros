@@ -78,7 +78,7 @@
       ]
     },
     frete_e_prazo: {
-      msg: "O valor do frete é calculado de acordo com sua região e os envios são feitos via Correios (PAC ou SEDEX). O prazo padrão máximo de entrega é de 14 dias úteis. Assim que for despachado, você recebe o código de rastreio dos Correios!",
+      msg: "O valor do frete é calculado de acordo com sua região e os envios são feitos via Correios (PAC ou SEDEX). O prazo de entrega varia de 14 a 30 dias úteis, dependendo da modalidade escolhida. Assim que for despachado, você recebe o código de rastreio dos Correios!",
       opts: [
         { label: "Voltar ao Início", target: "start" }
       ]

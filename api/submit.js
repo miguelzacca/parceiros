@@ -59,8 +59,11 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Dados incompletos: protocol, name, email e cpf são obrigatórios." });
       }
 
-      // Prazo = 14 dias úteis a partir de agora
-      const prazoEntrega = addBusinessDays(new Date(), 14);
+      let diasPrazo = 30; // PAC por padrão ou fallback
+      if (order.shipping && order.shipping.toUpperCase().includes('SEDEX')) {
+        diasPrazo = 20; // SEDEX mais rápido
+      }
+      const prazoEntrega = addBusinessDays(new Date(), diasPrazo);
 
       await client.execute({
         sql: `INSERT INTO pedidos

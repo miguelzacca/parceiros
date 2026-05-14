@@ -59,6 +59,11 @@ async function search() {
 
     // Prazo
     $('prazo-date').textContent = data.prazo_entrega_formatado ?? '—';
+    if (data.frete_tipo && data.frete_tipo.toUpperCase().includes('SEDEX')) {
+      $('prazo-sub').textContent = 'Até 20 dias úteis a partir da confirmação';
+    } else {
+      $('prazo-sub').textContent = 'Até 30 dias úteis a partir da confirmação';
+    }
 
     // Info
     $('r-protocolo').textContent = data.protocolo;
