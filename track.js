@@ -87,11 +87,10 @@ $('protocol-input').addEventListener('keydown', e => {
 });
 
 // Auto-preenche se vier protocolo na URL: ?p=WPK-XXXXXXXX
-window.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  const p = params.get('p');
-  if (p) {
-    $('protocol-input').value = p;
-    search();
-  }
-});
+// Auto-preenche se vier protocolo na URL: ?p=WPK-XXXXXXXX
+const params = new URLSearchParams(window.location.search);
+const p = params.get('p');
+if (p) {
+  $('protocol-input').value = p;
+  search();
+}

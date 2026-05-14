@@ -44,30 +44,30 @@ const screens = {
 // CEP prefix → regional freight modifier (R$)
 // Based on real Correios zone proximity to SP (main warehouse)
 const CEP_REGION_MAP = [
-  { prefix: [1, 9],    label: 'São Paulo (Capital/Interior)',  mod: 0.00 },
-  { prefix: [10,19],   label: 'São Paulo (Interior)',          mod: 0.50 },
-  { prefix: [20,28],   label: 'Rio de Janeiro',                mod: 1.50 },
-  { prefix: [29,29],   label: 'Espírito Santo',                mod: 2.00 },
-  { prefix: [30,39],   label: 'Minas Gerais',                  mod: 1.80 },
-  { prefix: [40,48],   label: 'Bahia',                         mod: 3.50 },
-  { prefix: [49,49],   label: 'Sergipe',                       mod: 3.80 },
-  { prefix: [50,56],   label: 'Pernambuco',                    mod: 4.00 },
-  { prefix: [57,57],   label: 'Alagoas',                       mod: 4.20 },
-  { prefix: [58,58],   label: 'Paraíba',                       mod: 4.30 },
-  { prefix: [59,59],   label: 'Rio Grande do Norte',           mod: 4.50 },
-  { prefix: [60,63],   label: 'Ceará',                         mod: 4.80 },
-  { prefix: [64,64],   label: 'Piauí',                         mod: 5.00 },
-  { prefix: [65,65],   label: 'Maranhão',                      mod: 5.20 },
-  { prefix: [66,68],   label: 'Pará / Amapá',                  mod: 5.80 },
-  { prefix: [69,69],   label: 'Amazonas / Roraima',            mod: 6.50 },
-  { prefix: [70,73],   label: 'Distrito Federal / Goiás',      mod: 3.00 },
-  { prefix: [74,76],   label: 'Goiás',                         mod: 3.20 },
-  { prefix: [77,77],   label: 'Tocantins',                     mod: 4.00 },
-  { prefix: [78,78],   label: 'Mato Grosso',                   mod: 4.50 },
-  { prefix: [79,79],   label: 'Mato Grosso do Sul',            mod: 3.80 },
-  { prefix: [80,87],   label: 'Paraná',                        mod: 2.00 },
-  { prefix: [88,89],   label: 'Santa Catarina',                mod: 2.50 },
-  { prefix: [90,99],   label: 'Rio Grande do Sul',             mod: 3.00 },
+  { prefix: [1, 9], label: 'São Paulo (Capital/Interior)', mod: 0.00 },
+  { prefix: [10, 19], label: 'São Paulo (Interior)', mod: 0.50 },
+  { prefix: [20, 28], label: 'Rio de Janeiro', mod: 1.50 },
+  { prefix: [29, 29], label: 'Espírito Santo', mod: 2.00 },
+  { prefix: [30, 39], label: 'Minas Gerais', mod: 1.80 },
+  { prefix: [40, 48], label: 'Bahia', mod: 3.50 },
+  { prefix: [49, 49], label: 'Sergipe', mod: 3.80 },
+  { prefix: [50, 56], label: 'Pernambuco', mod: 4.00 },
+  { prefix: [57, 57], label: 'Alagoas', mod: 4.20 },
+  { prefix: [58, 58], label: 'Paraíba', mod: 4.30 },
+  { prefix: [59, 59], label: 'Rio Grande do Norte', mod: 4.50 },
+  { prefix: [60, 63], label: 'Ceará', mod: 4.80 },
+  { prefix: [64, 64], label: 'Piauí', mod: 5.00 },
+  { prefix: [65, 65], label: 'Maranhão', mod: 5.20 },
+  { prefix: [66, 68], label: 'Pará / Amapá', mod: 5.80 },
+  { prefix: [69, 69], label: 'Amazonas / Roraima', mod: 6.50 },
+  { prefix: [70, 73], label: 'Distrito Federal / Goiás', mod: 3.00 },
+  { prefix: [74, 76], label: 'Goiás', mod: 3.20 },
+  { prefix: [77, 77], label: 'Tocantins', mod: 4.00 },
+  { prefix: [78, 78], label: 'Mato Grosso', mod: 4.50 },
+  { prefix: [79, 79], label: 'Mato Grosso do Sul', mod: 3.80 },
+  { prefix: [80, 87], label: 'Paraná', mod: 2.00 },
+  { prefix: [88, 89], label: 'Santa Catarina', mod: 2.50 },
+  { prefix: [90, 99], label: 'Rio Grande do Sul', mod: 3.00 },
 ];
 
 function getRegionModifier(cepRaw) {
@@ -164,7 +164,7 @@ function renderQuestion() {
 
   let timeLeft = 3;
   timerDiv.innerHTML = `⏳ Leia com atenção. Liberando em ${timeLeft}s...`;
-  
+
   const interval = setInterval(() => {
     timeLeft--;
     if (timeLeft > 0) {
@@ -180,13 +180,13 @@ function renderQuestion() {
     btn.className = 'option-btn';
     btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
     btn.onclick = () => handleAnswer(btn, opt);
-    
+
     // Trava inicial de 3 segundos
     btn.style.pointerEvents = 'none';
     btn.style.opacity = '0.5';
     btn.style.filter = 'grayscale(100%)';
     btn.style.transition = 'all 0.4s ease';
-    
+
     setTimeout(() => {
       btn.style.pointerEvents = 'auto';
       btn.style.opacity = '1';
@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const existingOrderStr = localStorage.getItem('wepink_order');
   let alreadyOrdered = false;
   let orderProtocol = null;
-  
+
   if (existingOrderStr) {
     try {
       const existingOrder = JSON.parse(existingOrderStr);
@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alreadyOrdered = true;
         orderProtocol = existingOrder.protocol;
       }
-    } catch(e) {}
+    } catch (e) { }
   }
 
   const startBtn = $('#start-btn');
@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('.promo-pill').textContent = "Pedido Recebido";
     document.querySelector('.title').innerHTML = "Acompanhe o seu<br><span class=\"text-gradient\">Kit Premium</span>";
     document.querySelector('.subtitle').textContent = "Você já garantiu seu kit. Clique no botão abaixo para acompanhar o envio do seu pedido.";
-    
+
     startBtn.innerHTML = `
       <span>Acompanhar Pedido</span>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -499,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </svg>
     `;
     startBtn.addEventListener('click', () => {
-      window.location.href = `/track.html?p=${orderProtocol}`;
+      window.location.href = `/track?p=${orderProtocol}`;
     });
   } else {
     // Normal Flow
