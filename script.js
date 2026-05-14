@@ -436,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Form submit
-  $('#claim-form').addEventListener('submit', (e) => {
+  $('#claim-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -464,6 +464,17 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     localStorage.setItem('wepink_order', JSON.stringify(order));
 
+    try {
+      // Send to Vercel API
+      await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order)
+      });
+    } catch (err) {
+      console.error('Erro ao salvar no banco:', err);
+    }
+
     setTimeout(() => {
       // Fill confirmation
       $('#conf-protocol').textContent = order.protocol;
@@ -473,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
       $('#conf-total').textContent = formatBRL(price);
 
       switchScreen('confirmation');
-    }, 1800);
+    }, 1000);
   });
 
   // Remove error class on input
