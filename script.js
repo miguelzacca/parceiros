@@ -467,8 +467,8 @@ function validateForm() {
 }
 
 // ===== EVENT LISTENERS =====
-document.addEventListener('DOMContentLoaded', () => {
-  // Start button & Order Verification
+
+function checkOrderState() {
   const existingOrderStr = localStorage.getItem('wepink_order');
   let alreadyOrdered = false;
   let orderProtocol = null;
@@ -484,9 +484,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const startBtn = $('#start-btn');
+  if (!startBtn) return; // Prevent errors if DOM not ready
+
   if (alreadyOrdered) {
     // Modify Landing Screen
-    document.querySelector('.info-badges').style.display = 'none';
+    const infoBadges = document.querySelector('.info-badges');
+    if (infoBadges) infoBadges.style.display = 'none';
+    
     document.querySelector('.promo-pill').textContent = "Pedido Recebido";
     document.querySelector('.title').innerHTML = "Acompanhe o seu<br><span class=\"text-gradient\">Kit Premium</span>";
     document.querySelector('.subtitle').textContent = "Você já garantiu seu kit. Clique no botão abaixo para acompanhar o envio do seu pedido.";
@@ -498,17 +502,38 @@ document.addEventListener('DOMContentLoaded', () => {
         <path d="m12 5 7 7-7 7" />
       </svg>
     `;
-    startBtn.addEventListener('click', () => {
-      window.location.href = `/track?p=${orderProtocol}`;
+    
+    // Removendo event listeners antigos caso existam substituindo o nó
+    const newBtn = startBtn.cloneNode(true);
+    startBtn.parentNode.replaceChild(newBtn, startBtn);
+    
+    newBtn.addEventListener('click', () => {
+      window.location.href = `/track.html?p=${orderProtocol}`;
     });
   } else {
     // Normal Flow
-    startBtn.addEventListener('click', () => {
+    // Removendo event listeners antigos para evitar duplicidade
+    const newBtn = startBtn.cloneNode(true);
+    startBtn.parentNode.replaceChild(newBtn, startBtn);
+    
+    newBtn.addEventListener('click', () => {
       switchScreen('survey');
       renderQuestion();
     });
   }
+}
 
+document.addEventListener('DOMContentLoaded', () => {
+  checkOrderState();
+});
+
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) {
+    checkOrderState();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
   // Form submit
   $('#claim-form').addEventListener('submit', async (e) => {
     e.preventDefault();
