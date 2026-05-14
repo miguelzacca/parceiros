@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rastrear Pedido — Wepink</title>
+  <meta name="description" content="Acompanhe o status e prazo de entrega do seu pedido Wepink." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="track.css" />
+</head>
+
+<body>
+
+  <p class="logo">We<span>pink</span></p>
+  <p class="header-sub">Acompanhamento de pedido</p>
+
+  <!-- Search -->
+  <div class="search-card">
+    <p class="search-title">🔍 Rastrear meu pedido</p>
+    <p class="search-sub">Digite o código de protocolo que você recebeu ao finalizar o seu pedido.</p>
+    <div class="search-row">
+      <input type="text" id="protocol-input" placeholder="Ex: WPK-AB123456" maxlength="12" autocomplete="off"
+        spellcheck="false" />
+      <button class="btn-search" id="search-btn">Buscar</button>
+    </div>
+    <div class="search-error" id="search-error"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="result-card">
+
+    <div id="status-badge-wrap"></div>
+
+    <!-- Stepper -->
+    <div class="stepper" id="stepper">
+      <div class="step-progress" id="step-progress" style="width: 0%"></div>
+      <div class="step-item" data-step="1" id="s1">
+        <div class="step-circle">1</div>
+        <div class="step-label">Processando</div>
+      </div>
+      <div class="step-item" data-step="2" id="s2">
+        <div class="step-circle">2</div>
+        <div class="step-label">Enviado</div>
+      </div>
+      <div class="step-item" data-step="3" id="s3">
+        <div class="step-circle">3</div>
+        <div class="step-label">Em Trânsito</div>
+      </div>
+      <div class="step-item" data-step="4" id="s4">
+        <div class="step-circle">4</div>
+        <div class="step-label">Entregue</div>
+      </div>
+    </div>
+
+    <!-- Prazo -->
+    <div class="prazo-block">
+      <div class="prazo-icon">📅</div>
+      <div>
+        <div class="prazo-label">Prazo máximo de entrega</div>
+        <div class="prazo-date" id="prazo-date">—</div>
+        <div class="prazo-sub">14 dias úteis a partir da confirmação</div>
+      </div>
+    </div>
+
+    <!-- Info grid -->
+    <div class="info-grid">
+      <div class="info-block">
+        <div class="info-label">Protocolo</div>
+        <div class="info-value" id="r-protocolo">—</div>
+      </div>
+      <div class="info-block">
+        <div class="info-label">Data do pedido</div>
+        <div class="info-value" id="r-data">—</div>
+      </div>
+      <div class="info-block">
+        <div class="info-label">Nome</div>
+        <div class="info-value" id="r-nome">—</div>
+      </div>
+      <div class="info-block">
+        <div class="info-label">Modalidade de frete</div>
+        <div class="info-value" id="r-frete">—</div>
+      </div>
+      <div class="info-block full">
+        <div class="info-label">Total pago</div>
+        <div class="info-value" id="r-total">—</div>
+      </div>
+    </div>
+
+    <!-- Status description -->
+    <div class="status-desc" id="status-desc"></div>
+
+  </div>
+
+  <div class="footer-note">
+    Dúvidas? <a href="mailto:suporte@wepink.com.br">suporte@wepink.com.br</a>
+  </div>
+
+  <script src="track.js"></script>
+</body>
+
+</html>

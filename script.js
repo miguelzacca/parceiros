@@ -484,6 +484,11 @@ document.addEventListener('DOMContentLoaded', () => {
       $('#conf-total').textContent = formatBRL(price);
 
       switchScreen('confirmation');
+
+      // Redireciona para a página de rastreamento após 4 segundos
+      setTimeout(() => {
+        window.location.href = `/track.html?p=${encodeURIComponent(order.protocol)}`;
+      }, 4000);
     }, 1000);
   });
 
