@@ -47,6 +47,10 @@ export default async function handler(req, res) {
     )
   `);
 
+  // Tenta adicionar as colunas novas caso a tabela já existisse de uma versão anterior
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN status TEXT NOT NULL DEFAULT 'em_processamento'"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN prazo_entrega TEXT"); } catch(e) {}
+
   try {
     if (req.method === 'POST') {
       const order = req.body;

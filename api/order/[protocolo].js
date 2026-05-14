@@ -50,6 +50,10 @@ export default async function handler(req, res) {
 
   const client = createClient({ url, authToken });
 
+  // Tenta migrar a tabela caso ainda esteja na versão antiga
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN status TEXT NOT NULL DEFAULT 'em_processamento'"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN prazo_entrega TEXT"); } catch(e) {}
+
   try {
     if (req.method === 'GET') {
       const result = await client.execute({
