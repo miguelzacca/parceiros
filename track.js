@@ -15,14 +15,14 @@ function renderStepper(step) {
   [1, 2, 3, 4].forEach(i => {
     const el = $('s' + i);
     el.classList.remove('done', 'active');
-    if (i < step)  el.classList.add('done');
+    if (i < step) el.classList.add('done');
     if (i === step) el.classList.add('active');
   });
 }
 
 async function search() {
-  const raw   = $('protocol-input').value.trim().toUpperCase();
-  const btn   = $('search-btn');
+  const raw = $('protocol-input').value.trim().toUpperCase();
+  const btn = $('search-btn');
   const errEl = $('search-error');
 
   errEl.classList.remove('show');
@@ -38,7 +38,7 @@ async function search() {
   btn.innerHTML = '<span class="spinner"></span>';
 
   try {
-    const res  = await fetch(`/api/order/${encodeURIComponent(raw)}`);
+    const res = await fetch(`/api/order/${encodeURIComponent(raw)}`);
     const data = await res.json();
 
     if (!res.ok) {
@@ -62,10 +62,10 @@ async function search() {
 
     // Info
     $('r-protocolo').textContent = data.protocolo;
-    $('r-data').textContent      = data.data_criacao_formatada ?? '—';
-    $('r-nome').textContent      = data.nome ?? '—';
-    $('r-frete').textContent     = data.frete_tipo ?? '—';
-    $('r-total').textContent     = data.total ? formatBRL(data.total) : '—';
+    $('r-data').textContent = data.data_criacao_formatada ?? '—';
+    $('r-nome').textContent = data.nome ?? '—';
+    $('r-frete').textContent = data.frete_tipo ?? '—';
+    $('r-total').textContent = data.total ? formatBRL(data.total) : '—';
 
     // Desc
     $('status-desc').textContent = data.status_desc ?? '';
