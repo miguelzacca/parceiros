@@ -154,6 +154,17 @@ function renderQuestion() {
     btn.className = 'option-btn';
     btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
     btn.onclick = () => handleAnswer(btn, opt);
+    
+    // Trava inicial de 2 segundos (bloqueia o clique)
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.6';
+    btn.style.transition = 'opacity 0.3s ease';
+    
+    setTimeout(() => {
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity = '1';
+    }, 2000);
+
     container.appendChild(btn);
   });
 }
