@@ -149,21 +149,49 @@ function renderQuestion() {
   const container = $('#options-container');
   container.innerHTML = '';
 
+  // Timer de aviso visual
+  const timerDiv = document.createElement('div');
+  timerDiv.id = 'question-timer';
+  timerDiv.style.textAlign = 'center';
+  timerDiv.style.color = 'var(--brand-pink)';
+  timerDiv.style.fontWeight = '600';
+  timerDiv.style.fontSize = '0.9rem';
+  timerDiv.style.marginBottom = '16px';
+  timerDiv.style.background = 'rgba(255, 20, 147, 0.1)';
+  timerDiv.style.padding = '8px 12px';
+  timerDiv.style.borderRadius = '8px';
+  container.appendChild(timerDiv);
+
+  let timeLeft = 3;
+  timerDiv.innerHTML = `⏳ Leia com atenção. Liberando em ${timeLeft}s...`;
+  
+  const interval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft > 0) {
+      timerDiv.innerHTML = `⏳ Leia com atenção. Liberando em ${timeLeft}s...`;
+    } else {
+      clearInterval(interval);
+      timerDiv.style.display = 'none';
+    }
+  }, 1000);
+
   qData.options.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'option-btn';
     btn.innerHTML = `<span class="option-letter">${letters[i]}</span><span>${opt}</span>`;
     btn.onclick = () => handleAnswer(btn, opt);
     
-    // Trava inicial de 2 segundos (bloqueia o clique)
+    // Trava inicial de 3 segundos
     btn.style.pointerEvents = 'none';
-    btn.style.opacity = '0.6';
-    btn.style.transition = 'opacity 0.3s ease';
+    btn.style.opacity = '0.5';
+    btn.style.filter = 'grayscale(100%)';
+    btn.style.transition = 'all 0.4s ease';
     
     setTimeout(() => {
       btn.style.pointerEvents = 'auto';
       btn.style.opacity = '1';
-    }, 2000);
+      btn.style.filter = 'grayscale(0%)';
+    }, 3000);
 
     container.appendChild(btn);
   });
