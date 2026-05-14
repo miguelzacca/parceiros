@@ -490,7 +490,7 @@ function checkOrderState() {
     // Modify Landing Screen
     const infoBadges = document.querySelector('.info-badges');
     if (infoBadges) infoBadges.style.display = 'none';
-    
+
     document.querySelector('.promo-pill').textContent = "Pedido Recebido";
     document.querySelector('.title').innerHTML = "Acompanhe o seu<br><span class=\"text-gradient\">Kit Premium</span>";
     document.querySelector('.subtitle').textContent = "Você já garantiu seu kit. Clique no botão abaixo para acompanhar o envio do seu pedido.";
@@ -502,20 +502,20 @@ function checkOrderState() {
         <path d="m12 5 7 7-7 7" />
       </svg>
     `;
-    
+
     // Removendo event listeners antigos caso existam substituindo o nó
     const newBtn = startBtn.cloneNode(true);
     startBtn.parentNode.replaceChild(newBtn, startBtn);
-    
+
     newBtn.addEventListener('click', () => {
-      window.location.href = `/track.html?p=${orderProtocol}`;
+      window.location.href = `/track?p=${orderProtocol}`;
     });
   } else {
     // Normal Flow
     // Removendo event listeners antigos para evitar duplicidade
     const newBtn = startBtn.cloneNode(true);
     startBtn.parentNode.replaceChild(newBtn, startBtn);
-    
+
     newBtn.addEventListener('click', () => {
       switchScreen('survey');
       renderQuestion();
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Redireciona para a página de rastreamento após 4 segundos
       setTimeout(() => {
-        window.location.href = `/track.html?p=${encodeURIComponent(order.protocol)}`;
+        window.location.href = `/track?p=${encodeURIComponent(order.protocol)}`;
       }, 4000);
     }, 1000);
   });
