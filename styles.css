@@ -660,11 +660,13 @@ body {
   justify-content: space-between;
   align-items: center;
   font-size: 0.85rem;
+  gap: 12px;
 }
 
 .kit-value {
   color: var(--text-muted);
   font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .kit-value s {
@@ -1088,6 +1090,7 @@ body {
   font-size: 0.95rem;
   color: var(--brand-pink-light);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .product-discount-badge {

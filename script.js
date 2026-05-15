@@ -31,8 +31,8 @@ const PRODUCTS = [
   {
     id: 'prod1',
     name: 'VF Golden Desodorante Colônia 75ml',
-    oldPrice: 299.90,
-    newPrice: 89.97,
+    oldPrice: 87.90,
+    newPrice: 26.37,
     image: './assets/vf_golden.webp',
     link: 'pac', // Usando link base pac para o preço, será substituído via API
     linkUpsell: 'pac_upsell'
@@ -40,8 +40,8 @@ const PRODUCTS = [
   {
     id: 'prod2',
     name: 'Body Splash VF Golden 200ml',
-    oldPrice: 139.90,
-    newPrice: 41.97,
+    oldPrice: 31.90,
+    newPrice: 9.57,
     image: './assets/body_splash.webp',
     link: 'sedex',
     linkUpsell: 'sedex_upsell'
@@ -49,8 +49,8 @@ const PRODUCTS = [
   {
     id: 'prod3',
     name: 'Body Cream Obsessed 200ml',
-    oldPrice: 139.90,
-    newPrice: 41.97,
+    oldPrice: 39.90,
+    newPrice: 11.97,
     image: './assets/body_cream.webp',
     link: 'sedex',
     linkUpsell: 'sedex_upsell'
@@ -67,7 +67,7 @@ async function loadKiwifyLinks() {
   try {
     const res = await fetch('/api/kiwify-links');
     if (res.ok) kiwifyLinks = await res.json();
-  } catch(e) { console.error('Failed to load kiwify links', e); }
+  } catch (e) { console.error('Failed to load kiwify links', e); }
 }
 loadKiwifyLinks();
 
@@ -87,7 +87,7 @@ const screens = {
 // ===== UTILS =====
 
 function formatBRL(val) {
-  return 'R$ ' + val.toFixed(2).replace('.', ',');
+  return 'R$\u00A0' + Number(val).toFixed(2).replace('.', ',');
 }
 
 function generateProtocol() {
@@ -111,16 +111,16 @@ function maskCEP(v) {
 }
 
 function isValidCPF(cpf) {
-  cpf = cpf.replace(/[^\d]+/g,'');
-  if(cpf == '') return false;
+  cpf = cpf.replace(/[^\d]+/g, '');
+  if (cpf == '') return false;
   if (cpf.length != 11 || /^(\d)\1{10}$/.test(cpf)) return false;
   let add = 0;
-  for (let i=0; i < 9; i ++) add += parseInt(cpf.charAt(i)) * (10 - i);
+  for (let i = 0; i < 9; i++) add += parseInt(cpf.charAt(i)) * (10 - i);
   let rev = 11 - (add % 11);
   if (rev == 10 || rev == 11) rev = 0;
   if (rev != parseInt(cpf.charAt(9))) return false;
   add = 0;
-  for (let i = 0; i < 10; i ++) add += parseInt(cpf.charAt(i)) * (11 - i);
+  for (let i = 0; i < 10; i++) add += parseInt(cpf.charAt(i)) * (11 - i);
   rev = 11 - (add % 11);
   if (rev == 10 || rev == 11) rev = 0;
   if (rev != parseInt(cpf.charAt(10))) return false;
@@ -150,7 +150,7 @@ function loadSurveyProgress() {
           return 'finished';
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   }
   return false;
 }
@@ -346,7 +346,7 @@ function initSelectionScreen() {
   const container = $('#product-options');
   const btn = $('#product-continue-btn');
   container.innerHTML = '';
-  
+
   PRODUCTS.forEach(prod => {
     const el = document.createElement('div');
     el.className = 'product-card';
@@ -707,7 +707,7 @@ function checkOrderState() {
     // Removendo event listeners antigos para evitar duplicidade
     const newBtn = startBtn.cloneNode(true);
     startBtn.parentNode.replaceChild(newBtn, startBtn);
-    
+
     if (progress === 'finished') {
       newBtn.innerHTML = `
         <span>Concluir Resgate do Produto</span>
@@ -822,10 +822,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Append customer email for pre-fill
       const sep = paymentUrl.includes('?') ? '&' : '?';
       const finalPaymentUrl = paymentUrl + sep + 'email=' + encodeURIComponent(order.email);
-      
+
       order.paymentUrl = finalPaymentUrl;
       localStorage.setItem('wepink_order', JSON.stringify(order));
-      
+
       window.location.href = finalPaymentUrl;
     } else {
       // Fallback: show confirmation and redirect to track
