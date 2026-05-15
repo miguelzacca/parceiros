@@ -26,8 +26,38 @@ const questions = [
 let currentQ = 0;
 const totalQ = questions.length;
 const answers = [];
-let selectedShipping = null;
-const FIXED_PRICES = { standard: 23.00, express: 27.00 };
+
+const PRODUCTS = [
+  {
+    id: 'prod1',
+    name: 'VF Golden Desodorante Colônia 75ml',
+    oldPrice: 299.90,
+    newPrice: 89.97,
+    image: './assets/vf_golden.webp',
+    link: 'pac', // Usando link base pac para o preço, será substituído via API
+    linkUpsell: 'pac_upsell'
+  },
+  {
+    id: 'prod2',
+    name: 'Body Splash VF Golden 200ml',
+    oldPrice: 139.90,
+    newPrice: 41.97,
+    image: './assets/body_splash.webp',
+    link: 'sedex',
+    linkUpsell: 'sedex_upsell'
+  },
+  {
+    id: 'prod3',
+    name: 'Body Cream Obsessed 200ml',
+    oldPrice: 139.90,
+    newPrice: 41.97,
+    image: './assets/body_cream.webp',
+    link: 'sedex',
+    linkUpsell: 'sedex_upsell'
+  }
+];
+
+let selectedProduct = null;
 let upsellActive = false;
 const UPSELL_PRICE = 3.00;
 
@@ -43,21 +73,18 @@ loadKiwifyLinks();
 
 // ===== DOM =====
 const $ = (sel) => document.querySelector(sel);
+// Screens
 const screens = {
   landing: $('#landing-screen'),
   survey: $('#survey-screen'),
   processing: $('#processing-screen'),
   share: $('#share-screen'),
+  selection: $('#selection-screen'),
   claim: $('#claim-screen'),
   confirmation: $('#confirmation-screen')
 };
 
 // ===== UTILS =====
-
-// Fixed shipping prices
-function getFixedShippingPrices() {
-  return { standard: FIXED_PRICES.standard, express: FIXED_PRICES.express };
-}
 
 function formatBRL(val) {
   return 'R$ ' + val.toFixed(2).replace('.', ',');
@@ -309,6 +336,41 @@ function initShareScreen() {
   };
 
   continueBtn.onclick = function () {
+    switchScreen('selection');
+    initSelectionScreen();
+  };
+}
+
+// ===== SELECTION SCREEN =====
+function initSelectionScreen() {
+  const container = $('#product-options');
+  const btn = $('#product-continue-btn');
+  container.innerHTML = '';
+  
+  PRODUCTS.forEach(prod => {
+    const el = document.createElement('div');
+    el.className = 'product-card';
+    el.innerHTML = `
+      <div class="product-discount-badge">70% OFF</div>
+      <img src="${prod.image}" alt="${prod.name}" class="product-card-img">
+      <div class="product-card-info">
+        <div class="product-card-title">${prod.name}</div>
+        <div class="product-card-prices">
+          <span class="product-price-old">${formatBRL(prod.oldPrice)}</span>
+          <span class="product-price-new">${formatBRL(prod.newPrice)}</span>
+        </div>
+      </div>
+    `;
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedProduct = prod;
+      btn.disabled = false;
+    });
+    container.appendChild(el);
+  });
+
+  btn.onclick = () => {
     switchScreen('claim');
     initClaimForm();
   };
@@ -316,9 +378,18 @@ function initShareScreen() {
 
 // ===== CLAIM FORM =====
 function initClaimForm() {
+  // Atualiza as views de pré-visualização do kit
+  if (selectedProduct) {
+    $('#claim-preview-img').src = selectedProduct.image;
+    $('#claim-preview-name').textContent = selectedProduct.name;
+    $('#claim-preview-old').textContent = formatBRL(selectedProduct.oldPrice);
+    $('#claim-preview-new').textContent = formatBRL(selectedProduct.newPrice);
+  }
+
   setupMasks();
   setupCEPSearch();
   setupUpsell();
+  updateOrderSummary(); // Força a atualização do resumo assim que abre
 }
 
 function setupUpsell() {
@@ -333,8 +404,8 @@ function setupUpsell() {
     pixField.style.display = upsellActive ? 'block' : 'none';
     card.classList.toggle('active', upsellActive);
 
-    // Re-render the summary if shipping is already selected
-    if (selectedShipping) {
+    // Re-render the summary
+    if (selectedProduct) {
       updateOrderSummary();
     }
   });
@@ -386,20 +457,10 @@ function showShippingLoading() {
   container.innerHTML = `
     <div class="shipping-skeleton">
       <div class="skeleton-card">
-        <div class="skel-radio"></div>
         <div class="skel-info">
           <div class="skel-line skel-line-lg"></div>
           <div class="skel-line skel-line-sm"></div>
         </div>
-        <div class="skel-price"></div>
-      </div>
-      <div class="skeleton-card">
-        <div class="skel-radio"></div>
-        <div class="skel-info">
-          <div class="skel-line skel-line-lg"></div>
-          <div class="skel-line skel-line-sm"></div>
-        </div>
-        <div class="skel-price"></div>
       </div>
     </div>
   `;
@@ -417,11 +478,8 @@ async function fetchCEP(cep) {
   // Immediately show skeleton loader in shipping section
   showShippingLoading();
 
-  // Reset state
-  selectedShipping = null;
+  // Lock submit until CEP is resolved
   $('#submit-btn').disabled = true;
-  const summary = $('#order-summary');
-  if (summary) summary.style.display = 'none';
 
   try {
     const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
@@ -460,54 +518,24 @@ async function fetchCEP(cep) {
 }
 
 function renderShippingOptions() {
-  // Reset selection when new shipping options are rendered
-  selectedShipping = null;
-  $('#submit-btn').disabled = true;
-  const summary = $('#order-summary');
-  if (summary) summary.style.display = 'none';
-
   const container = $('#shipping-options');
-  const prices = getFixedShippingPrices();
   container.innerHTML = `
-    <div class="shipping-card" data-type="standard" id="ship-standard">
-      <div class="shipping-radio"><div class="shipping-radio-dot"></div></div>
+    <div class="shipping-card selected" style="cursor:default;">
       <div class="shipping-info">
-        <div class="shipping-name">📦 PAC — Econômico</div>
-        <div class="shipping-detail">Entrega em 20 a 30 dias úteis</div>
+        <div class="shipping-name">📦 Transportadora Expresso</div>
+        <div class="shipping-detail">Entrega em até 15 dias úteis</div>
       </div>
-      <div class="shipping-price">${formatBRL(prices.standard)}</div>
-    </div>
-    <div class="shipping-card" data-type="express" id="ship-express">
-      <div class="shipping-radio"><div class="shipping-radio-dot"></div></div>
-      <div class="shipping-info">
-        <div class="shipping-name">🚀 SEDEX — Rápido</div>
-        <div class="shipping-detail">Entrega em 14 a 20 dias úteis</div>
-      </div>
-      <div class="shipping-price">${formatBRL(prices.express)}</div>
+      <div class="shipping-price" style="color: var(--success); font-weight:700;">GRÁTIS</div>
     </div>
   `;
 
-  container.querySelectorAll('.shipping-card').forEach(card => {
-    card.addEventListener('click', () => selectShipping(card.dataset.type));
-  });
-}
-
-function selectShipping(type) {
-  selectedShipping = type;
-
-  document.querySelectorAll('.shipping-card').forEach(c => c.classList.remove('selected'));
-  document.querySelector(`.shipping-card[data-type="${type}"]`).classList.add('selected');
-
-  updateOrderSummary();
-
-  // Enable submit
   $('#submit-btn').disabled = false;
 }
 
 function updateOrderSummary() {
-  const prices = getFixedShippingPrices();
-  const price = selectedShipping === 'express' ? prices.express : prices.standard;
-  const label = selectedShipping === 'express' ? 'Frete SEDEX' : 'Frete PAC';
+  if (!selectedProduct) return;
+
+  const price = selectedProduct.newPrice;
   const total = upsellActive ? price + UPSELL_PRICE : price;
 
   const summary = $('#order-summary');
@@ -518,12 +546,12 @@ function updateOrderSummary() {
       <span class="section-icon">🧾</span> Resumo
     </h4>
     <div class="summary-row">
-      <span>Kit VF Choices Delight (3 itens)</span>
-      <span class="summary-value free-tag">GRÁTIS</span>
+      <span id="summary-product-name" style="max-width: 65%; font-size: 0.9rem;">${selectedProduct.name}</span>
+      <span class="summary-value" id="summary-product-value">${formatBRL(price)}</span>
     </div>
     <div class="summary-row" id="summary-shipping-row">
-      <span id="summary-shipping-label">${label}</span>
-      <span class="summary-value" id="summary-shipping-value">${formatBRL(price)}</span>
+      <span id="summary-shipping-label">Frete Expresso</span>
+      <span class="summary-value free-tag" id="summary-shipping-value">GRÁTIS</span>
     </div>
     ${upsellActive ? `
     <div class="summary-row">
@@ -575,7 +603,8 @@ function validateForm() {
     valid = false;
   }
 
-  if (!selectedShipping) valid = false;
+  // Check if CEP has been fetched and btn is enabled
+  if ($('#submit-btn').disabled) valid = false;
 
   // PIX key validation if upsell is active
   if (upsellActive) {
@@ -624,8 +653,8 @@ function checkOrderState() {
     if (trackLinkSmall) trackLinkSmall.style.display = 'none';
 
     document.querySelector('.promo-pill').textContent = "Pedido Recebido";
-    document.querySelector('.title').innerHTML = "Acompanhe o seu<br><span class=\"text-gradient\">Kit Premium</span>";
-    document.querySelector('.subtitle').textContent = "Você já garantiu seu kit. Clique no botão abaixo para acompanhar o envio do seu pedido.";
+    document.querySelector('.title').innerHTML = "Acompanhe o seu<br><span class=\"text-gradient\">Produto Premium</span>";
+    document.querySelector('.subtitle').textContent = "Você já garantiu seu produto. Clique no botão abaixo para acompanhar o envio do seu pedido.";
 
     startBtn.innerHTML = `
       <span>Acompanhar Pedido</span>
@@ -652,7 +681,7 @@ function checkOrderState() {
 
     document.querySelector('.promo-pill').textContent = "Pagamento Pendente";
     document.querySelector('.title').innerHTML = "Finalize o seu<br><span class=\"text-gradient\">Pagamento</span>";
-    document.querySelector('.subtitle').textContent = "Seu kit já está reservado, mas estamos aguardando o pagamento do frete.";
+    document.querySelector('.subtitle').textContent = "Seu produto já está reservado, mas estamos aguardando o pagamento.";
 
     startBtn.innerHTML = `
       <span>Finalizar Pagamento</span>
@@ -681,7 +710,7 @@ function checkOrderState() {
     
     if (progress === 'finished') {
       newBtn.innerHTML = `
-        <span>Concluir Resgate do Kit</span>
+        <span>Concluir Resgate do Produto</span>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M5 12h14" />
           <path d="m12 5 7 7-7 7" />
@@ -733,9 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.innerHTML = '<div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0;"></div>';
     btn.disabled = true;
 
-    const prices = getFixedShippingPrices();
-    const price = selectedShipping === 'express' ? prices.express : prices.standard;
-    const shippingLabel = selectedShipping === 'express' ? 'SEDEX' : 'PAC';
+    const price = selectedProduct.newPrice;
     const totalPrice = upsellActive ? price + UPSELL_PRICE : price;
 
     // Build order object
@@ -747,8 +774,10 @@ document.addEventListener('DOMContentLoaded', () => {
       email: $('#email').value,
       address: `${$('#street').value}, ${$('#number').value} - ${$('#neighborhood').value}, ${$('#city').value}/${$('#state').value} - CEP ${$('#cep').value}`,
       complement: $('#complement').value,
-      shipping: shippingLabel,
-      shippingPrice: price,
+      shipping: 'Expresso',
+      productName: selectedProduct.name,
+      productPrice: price,
+      shippingPrice: 0,
       upsellPix: upsellActive,
       upsellPixKey: upsellActive ? ($('#pix-key') ? $('#pix-key').value : '') : null,
       upsellPrice: upsellActive ? UPSELL_PRICE : 0,
@@ -782,10 +811,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let paymentUrl = '';
     if (kiwifyLinks) {
-      if (shippingLabel === 'PAC' && !upsellActive) paymentUrl = kiwifyLinks.pac;
-      else if (shippingLabel === 'PAC' && upsellActive) paymentUrl = kiwifyLinks.pac_upsell;
-      else if (shippingLabel === 'SEDEX' && !upsellActive) paymentUrl = kiwifyLinks.sedex;
-      else paymentUrl = kiwifyLinks.sedex_upsell;
+      // Como a gente tem links diferentes baseados nos produtos (ou links padrão simulados)
+      // Aproveitaremos os links de pac/sedex mapeados pelas chaves do produto
+      const baseKey = selectedProduct.link;
+      const upsellKey = selectedProduct.linkUpsell;
+      paymentUrl = upsellActive ? kiwifyLinks[upsellKey] : kiwifyLinks[baseKey];
     }
 
     if (paymentUrl) {

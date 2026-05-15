@@ -56,6 +56,8 @@ export default async function handler(req, res) {
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN payment_status TEXT DEFAULT 'pending'"); } catch(e) {}
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN tracking_code TEXT"); } catch(e) {}
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN kiwify_order_id TEXT"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN produto_nome TEXT"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN produto_preco REAL"); } catch(e) {}
 
   try {
     if (req.method === 'POST') {
@@ -73,8 +75,8 @@ export default async function handler(req, res) {
 
       await client.execute({
         sql: `INSERT INTO pedidos
-                (protocolo, nome, cpf, telefone, email, endereco, frete_tipo, frete_valor, total, respostas, status, prazo_entrega)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'em_processamento', ?)`,
+                (protocolo, nome, cpf, telefone, email, endereco, frete_tipo, frete_valor, total, respostas, status, prazo_entrega, produto_nome, produto_preco)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'em_processamento', ?, ?, ?)`,
         args: [
           order.protocol,
           order.name,
@@ -86,7 +88,9 @@ export default async function handler(req, res) {
           order.shippingPrice ?? null,
           order.total ?? null,
           JSON.stringify(order.answers ?? []),
-          prazoEntrega
+          prazoEntrega,
+          order.productName ?? null,
+          order.productPrice ?? null
         ]
       });
 
