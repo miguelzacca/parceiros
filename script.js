@@ -491,12 +491,12 @@ async function fetchCEP(cep) {
     // Unlock fields that may need manual input
     if (!data.logradouro) {
       $('#street').removeAttribute('readonly');
-      $('#street').focus();
+      // $('#street').focus();
     } else if (!data.bairro) {
       $('#neighborhood').removeAttribute('readonly');
-      $('#neighborhood').focus();
+      // $('#neighborhood').focus();
     } else {
-      $('#number').focus();
+      // $('#number').focus();
     }
 
     status.textContent = `✓ ${data.localidade} - ${data.uf}`;
@@ -709,8 +709,8 @@ function checkOrderState() {
         </svg>
       `;
       newBtn.addEventListener('click', () => {
-        switchScreen('claim');
-        initClaimForm();
+        switchScreen('selection');
+        initSelectionScreen();
       });
     } else if (progress === true) {
       newBtn.innerHTML = `
@@ -749,6 +749,13 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#claim-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+
+    if (!selectedProduct) {
+      alert("Por favor, volte e selecione um produto.");
+      switchScreen('selection');
+      initSelectionScreen();
+      return;
+    }
 
     const btn = $('#submit-btn');
     btn.innerHTML = '<div class="spinner" style="width:22px;height:22px;border-width:2px;margin:0;"></div>';
@@ -795,14 +802,14 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify(order)
       });
       const submitData = await submitRes.json();
-      
+
       if (!submitRes.ok) {
         alert(submitData.error || "Erro ao gerar pagamento. Tente novamente.");
         btn.innerHTML = 'Concluir Resgate do Produto';
         btn.disabled = false;
         return;
       }
-      
+
       if (submitData.paymentUrl) paymentUrl = submitData.paymentUrl;
     } catch (err) {
       console.error('Erro ao salvar no banco:', err);
@@ -814,9 +821,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Save to localStorage WITH payment URL
     if (paymentUrl) {
-        order.paymentUrl = paymentUrl;
+      order.paymentUrl = paymentUrl;
     } else {
-        order.paymentUrl = `track.html?p=${encodeURIComponent(order.protocol)}`;
+      order.paymentUrl = `track.html?p=${encodeURIComponent(order.protocol)}`;
     }
     localStorage.setItem('wepink_order', JSON.stringify(order));
 
