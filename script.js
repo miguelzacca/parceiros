@@ -61,15 +61,7 @@ let selectedProduct = null;
 let upsellActive = false;
 const UPSELL_PRICE = 3.00;
 
-// Kiwify payment links (injected via API)
-let kiwifyLinks = null;
-async function loadKiwifyLinks() {
-  try {
-    const res = await fetch('/api/kiwify-links');
-    if (res.ok) kiwifyLinks = await res.json();
-  } catch (e) { console.error('Failed to load kiwify links', e); }
-}
-loadKiwifyLinks();
+// Payment links removed (Using Transparent Checkout)
 
 // ===== DOM =====
 const $ = (sel) => document.querySelector(sel);
@@ -787,52 +779,42 @@ document.addEventListener('DOMContentLoaded', () => {
       timestamp: new Date().toISOString()
     };
 
-    // Save to localStorage BEFORE redirect (Kiwify will redirect back)
-    localStorage.setItem('wepink_order', JSON.stringify(order));
-
-    // Save to DB
+    // Save to DB and get paymentUrl back
+    let paymentUrl = '';
     try {
-      await fetch('/api/submit', {
+      const submitRes = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order)
       });
+      const submitData = await submitRes.json();
+      
+      if (!submitRes.ok) {
+        alert(submitData.error || "Erro ao gerar pagamento. Tente novamente.");
+        btn.innerHTML = 'Concluir Resgate do Produto';
+        btn.disabled = false;
+        return;
+      }
+      
+      if (submitData.paymentUrl) paymentUrl = submitData.paymentUrl;
     } catch (err) {
       console.error('Erro ao salvar no banco:', err);
-    }
-
-    // Determine correct Kiwify link
-    if (!kiwifyLinks) {
-      try {
-        const res = await fetch('/api/kiwify-links');
-        if (res.ok) kiwifyLinks = await res.json();
-      } catch (e) { console.error('Refetch failed', e); }
-    }
-
-    let paymentUrl = '';
-    if (kiwifyLinks) {
-      // Como a gente tem links diferentes baseados nos produtos (ou links padrão simulados)
-      // Aproveitaremos os links de pac/sedex mapeados pelas chaves do produto
-      const baseKey = selectedProduct.link;
-      const upsellKey = selectedProduct.linkUpsell;
-      paymentUrl = upsellActive ? kiwifyLinks[upsellKey] : kiwifyLinks[baseKey];
-    }
-
-    if (paymentUrl) {
-      // Append customer email for pre-fill
-      const sep = paymentUrl.includes('?') ? '&' : '?';
-      const finalPaymentUrl = paymentUrl + sep + 'email=' + encodeURIComponent(order.email);
-
-      order.paymentUrl = finalPaymentUrl;
-      localStorage.setItem('wepink_order', JSON.stringify(order));
-
-      window.location.href = finalPaymentUrl;
-    } else {
-      // Fallback: show confirmation and redirect to track
-      alert('Erro ao carregar link de pagamento. Tente novamente.');
-      btn.innerHTML = '<span>Finalizar Pedido</span>';
+      alert('Erro de conexão ao processar seu pedido. Tente novamente.');
+      btn.innerHTML = 'Concluir Resgate do Produto';
       btn.disabled = false;
+      return;
     }
+
+    // Save to localStorage WITH payment URL
+    if (paymentUrl) {
+        order.paymentUrl = paymentUrl;
+    } else {
+        order.paymentUrl = `track.html?p=${encodeURIComponent(order.protocol)}`;
+    }
+    localStorage.setItem('wepink_order', JSON.stringify(order));
+
+    // Redirect to checkout page
+    window.location.href = order.paymentUrl;
   });
 
   // Remove error class on input

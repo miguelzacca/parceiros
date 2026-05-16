@@ -51,13 +51,15 @@ export default async function handler(req, res) {
   `);
 
   // Tenta adicionar as colunas novas caso a tabela já existisse de uma versão anterior
-  try { await client.execute("ALTER TABLE pedidos ADD COLUMN status TEXT NOT NULL DEFAULT 'em_processamento'"); } catch(e) {}
-  try { await client.execute("ALTER TABLE pedidos ADD COLUMN prazo_entrega TEXT"); } catch(e) {}
-  try { await client.execute("ALTER TABLE pedidos ADD COLUMN payment_status TEXT DEFAULT 'pending'"); } catch(e) {}
-  try { await client.execute("ALTER TABLE pedidos ADD COLUMN tracking_code TEXT"); } catch(e) {}
-  try { await client.execute("ALTER TABLE pedidos ADD COLUMN kiwify_order_id TEXT"); } catch(e) {}
-  try { await client.execute("ALTER TABLE pedidos ADD COLUMN produto_nome TEXT"); } catch(e) {}
-  try { await client.execute("ALTER TABLE pedidos ADD COLUMN produto_preco REAL"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN status TEXT NOT NULL DEFAULT 'em_processamento'"); } catch (e) { }
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN prazo_entrega TEXT"); } catch (e) { }
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN payment_status TEXT DEFAULT 'pending'"); } catch (e) { }
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN tracking_code TEXT"); } catch (e) { }
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN kiwify_order_id TEXT"); } catch (e) { }
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN produto_nome TEXT"); } catch (e) { }
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN produto_preco REAL"); } catch (e) { }
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN pix_code TEXT"); } catch (e) { }
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN qr_code TEXT"); } catch (e) { }
 
   try {
     if (req.method === 'POST') {
@@ -72,6 +74,70 @@ export default async function handler(req, res) {
         diasPrazo = 20; // SEDEX mais rápido
       }
       const prazoEntrega = addBusinessDays(new Date(), diasPrazo);
+
+      let checkoutUrl = '';
+
+      const tag = process.env.INFINITEPAY_TAG || 'miguel-zacca';
+      const host = req.headers.host || 'localhost:3000';
+      const protocol = host.includes('localhost') ? 'http' : 'https';
+
+      try {
+        const items = [
+          {
+            quantity: 1,
+            price: Math.round((order.productPrice || order.total) * 100),
+            description: order.productName || 'Produto Premium'
+          }
+        ];
+
+        if (order.upsellPrice > 0) {
+          items.push({
+            quantity: 1,
+            price: Math.round(order.upsellPrice * 100),
+            description: "Sorteio PIX R$ 1.000"
+          });
+        }
+
+        if (order.shippingPrice > 0) {
+          items.push({
+            quantity: 1,
+            price: Math.round(order.shippingPrice * 100),
+            description: order.shipping || "Frete"
+          });
+        }
+
+        const ipRes = await fetch('https://api.checkout.infinitepay.io/links', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            handle: tag,
+            redirect_url: `${protocol}://${host}/track?p=${order.protocol}`,
+            webhook_url: `${protocol}://${host}/api/infinitepay-webhook`,
+            order_nsu: order.protocol,
+            items: items
+          })
+        });
+
+        if (ipRes.ok) {
+          const ipData = await ipRes.json();
+          if (ipData.url) {
+            checkoutUrl = ipData.url;
+          }
+        } else {
+          const errMsg = await ipRes.text();
+          console.error("Erro InfinitePay API:", errMsg);
+          return res.status(400).json({ error: "Erro ao gerar link de pagamento. Verifique a tag InfinitePay configurada e tente novamente." });
+        }
+      } catch (err) { 
+        console.error("Erro requisição InfinitePay:", err); 
+        return res.status(500).json({ error: "Serviço de pagamento indisponível no momento. Tente novamente." });
+      }
+
+      if (!checkoutUrl) {
+        return res.status(400).json({ error: "Falha ao obter URL de checkout." });
+      }
 
       await client.execute({
         sql: `INSERT INTO pedidos
@@ -98,6 +164,7 @@ export default async function handler(req, res) {
         success: true,
         protocol: order.protocol,
         prazo_entrega: prazoEntrega,
+        paymentUrl: checkoutUrl,
         message: "Pedido registrado com sucesso."
       });
 

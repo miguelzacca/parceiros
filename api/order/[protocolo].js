@@ -55,12 +55,14 @@ export default async function handler(req, res) {
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN prazo_entrega TEXT"); } catch(e) {}
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN payment_status TEXT DEFAULT 'pending'"); } catch(e) {}
   try { await client.execute("ALTER TABLE pedidos ADD COLUMN tracking_code TEXT"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN pix_code TEXT"); } catch(e) {}
+  try { await client.execute("ALTER TABLE pedidos ADD COLUMN qr_code TEXT"); } catch(e) {}
 
   try {
     if (req.method === 'GET') {
       const result = await client.execute({
         sql: `SELECT protocolo, nome, email, frete_tipo, frete_valor, total,
-                     status, prazo_entrega, data_criacao, payment_status, tracking_code
+                     status, prazo_entrega, data_criacao, payment_status, tracking_code, pix_code, qr_code
               FROM pedidos WHERE protocolo = ?`,
         args: [protocolo.toUpperCase()]
       });
@@ -88,7 +90,9 @@ export default async function handler(req, res) {
         data_criacao:           row.data_criacao,
         data_criacao_formatada: formatBR(row.data_criacao),
         payment_status: row.payment_status || 'pending',
-        tracking_code:  row.tracking_code || null
+        tracking_code:  row.tracking_code || null,
+        pix_code:       row.pix_code || null,
+        qr_code:        row.qr_code || null
       });
 
     } else if (req.method === 'PATCH') {

@@ -1,0 +1,68 @@
+import { createClient } from "@libsql/client";
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const payload = req.body;
+  console.log('[InfinitePay Webhook] Recebido:', JSON.stringify(payload));
+
+  const protocolo = payload.order_nsu;
+
+  if (!protocolo) {
+    return res.status(400).json({ error: 'Protocolo (order_nsu) não encontrado no payload.' });
+  }
+
+  // Verifica se o pagamento foi aprovado
+  // O payload de exemplo fornecido continha receipt_url, transaction_nsu, indicando sucesso.
+  let isApproved = false;
+  if (payload.status === 'approved' || payload.status === 'paid') {
+      isApproved = true;
+  } else if (payload.receipt_url || payload.transaction_nsu || (payload.paid_amount && payload.paid_amount > 0)) {
+      isApproved = true;
+  }
+
+  if (isApproved) {
+    const url = process.env.TURSO_DATABASE_URL;
+    const authToken = process.env.TURSO_AUTH_TOKEN;
+    if (!url || !authToken) {
+      console.error('[InfinitePay Webhook] Variáveis do Turso ausentes.');
+      return res.status(500).json({ error: 'Erro de configuração do servidor' });
+    }
+
+    const client = createClient({ url, authToken });
+
+    try {
+      // Gera um código de rastreio fictício
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let trackingCode = 'WP';
+      for (let i = 0; i < 9; i++) trackingCode += chars.charAt(Math.floor(Math.random() * chars.length));
+      trackingCode += 'BR';
+
+      // Atualiza o banco
+      const result = await client.execute({
+        sql: `UPDATE pedidos 
+              SET status = 'enviado', 
+                  payment_status = 'approved',
+                  tracking_code = ?
+              WHERE protocolo = ? AND payment_status != 'approved'`,
+        args: [trackingCode, protocolo]
+      });
+
+      if (result.rowsAffected > 0) {
+        console.log(`[InfinitePay Webhook] Pedido ${protocolo} aprovado e atualizado com sucesso.`);
+      } else {
+        console.log(`[InfinitePay Webhook] Pedido ${protocolo} já estava aprovado ou não encontrado.`);
+      }
+      
+      return res.status(200).json({ success: true, message: 'Webhook processado com sucesso' });
+
+    } catch (error) {
+      console.error('[InfinitePay Webhook] Erro ao atualizar BD:', error);
+      return res.status(500).json({ error: 'Erro interno ao processar webhook' });
+    }
+  }
+
+  return res.status(200).json({ success: true, message: 'Webhook ignorado (status não aprovado)' });
+}
