@@ -614,7 +614,7 @@ function validateForm() {
 
 // ===== EVENT LISTENERS =====
 
-function checkOrderState() {
+async function checkOrderState() {
   const existingOrderStr = localStorage.getItem('wepink_order');
   let alreadyOrdered = false;
   let orderProtocol = null;
@@ -631,6 +631,27 @@ function checkOrderState() {
         paymentUrl = existingOrder.paymentUrl;
       }
     } catch (e) { }
+  }
+
+  // Se temos um pedido com status pending no localStorage, verificar o status real na API
+  // O webhook pode ter atualizado o BD enquanto o usuário estava fora do site
+  if (alreadyOrdered && paymentStatus === 'pending' && orderProtocol) {
+    try {
+      const res = await fetch(`/api/order/${encodeURIComponent(orderProtocol)}`);
+      if (res.ok) {
+        const serverData = await res.json();
+        if (serverData.payment_status === 'approved') {
+          // O pagamento já foi aprovado no servidor! Atualizar localStorage
+          paymentStatus = 'approved';
+          const existingOrder = JSON.parse(existingOrderStr);
+          existingOrder.paymentStatus = 'approved';
+          localStorage.setItem('wepink_order', JSON.stringify(existingOrder));
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao verificar status do pedido na API:', e);
+      // Continua com o status do localStorage em caso de erro de rede
+    }
   }
 
   const startBtn = $('#start-btn');
