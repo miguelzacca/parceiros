@@ -84,10 +84,7 @@
       ]
     },
     suporte: {
-      msg: "No momento, nossos atendentes ao vivo estão indisponíveis por este canal. Mas estamos super prontos para te ajudar via e-mail! Envie sua dúvida para: suporte@wepink.com.br",
-      opts: [
-        { label: "Voltar", target: "start" }
-      ]
+      msg: "Entendido! Estou transferindo seu atendimento para um de nossos especialistas. Por favor, aguarde um momento na nossa fila virtual..."
     },
     fallback: {
       msg: "Não entendi muito bem. 😅 Como sou uma assistente virtual automatizada, consigo te ajudar melhor se você clicar em uma das opções abaixo:",
@@ -107,6 +104,7 @@
 
   let isOpen = false;
   let hasStarted = false;
+  let isWaitingForHuman = false;
 
   // Keyword Intent Recognition
   const intents = [
@@ -186,6 +184,22 @@
     `;
     msgContainer.insertAdjacentHTML('beforeend', msgHtml);
 
+    if (stateKey === 'suporte') {
+      isWaitingForHuman = true;
+      // Adicionar indicador de digitação infinito para parecer que alguém está lendo/entrando
+      msgContainer.insertAdjacentHTML('beforeend', `
+        <div class="wpk-msg wpk-msg-bot" id="wpk-infinite-typing">
+          <div class="wpk-typing">
+            <div class="wpk-dot"></div>
+            <div class="wpk-dot"></div>
+            <div class="wpk-dot"></div>
+          </div>
+        </div>
+      `);
+      scrollToBottom();
+      return;
+    }
+
     if (state.opts && state.opts.length > 0) {
       const optsDiv = document.createElement('div');
       optsDiv.className = 'wpk-options';
@@ -215,6 +229,12 @@
     if (!text.trim()) return;
     appendUserMsg(text);
     input.value = '';
+
+    if (isWaitingForHuman) {
+      // Ignora processamento das mensagens para simular espera humana
+      scrollToBottom();
+      return;
+    }
 
     const lower = text.toLowerCase();
     let foundTarget = 'fallback';
