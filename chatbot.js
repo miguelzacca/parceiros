@@ -71,14 +71,14 @@
       ]
     },
     promocao: {
-      msg: "Sim, é 100% oficial! 🎉 Estamos distribuindo nossos Kits Premium gratuitamente para coletar a opinião de clientes reais por meio dessa pesquisa de mercado. Você não paga nada pelos produtos, apenas o frete de envio da transportadora.",
+      msg: "Sim, é 100% oficial! 🎉 Como recompensa por participar da nossa pesquisa de mercado, estamos liberando nossos produtos Premium com 70% de desconto e frete GRÁTIS para todo o Brasil. Você paga apenas o valor do produto com desconto!",
       opts: [
         { label: "Como funciona o frete?", target: "frete_e_prazo" },
         { label: "Voltar", target: "start" }
       ]
     },
     frete_e_prazo: {
-      msg: "O frete é fixo: PAC (Econômico) por R$ 23,00 com entrega em 20-30 dias úteis, ou SEDEX (Rápido) por R$ 27,00 com entrega em 14-20 dias úteis. Os envios são feitos via Correios. Assim que for despachado, você recebe o código de rastreio!",
+      msg: "O frete é totalmente GRÁTIS para todo o Brasil (Frete Expresso), com entrega em até 30 dias úteis! Assim que o seu pedido for despachado, você receberá o código de rastreio no seu e-mail.",
       opts: [
         { label: "Voltar ao Início", target: "start" }
       ]
