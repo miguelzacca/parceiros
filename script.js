@@ -515,7 +515,7 @@ function renderShippingOptions() {
     <div class="shipping-card selected" style="cursor:default;">
       <div class="shipping-info">
         <div class="shipping-name">📦 Transportadora Expresso</div>
-        <div class="shipping-detail">Entrega em até 15 dias úteis</div>
+        <div class="shipping-detail">Entrega em até 30 dias úteis</div>
       </div>
       <div class="shipping-price" style="color: var(--success); font-weight:700;">GRÁTIS</div>
     </div>
