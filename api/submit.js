@@ -69,6 +69,16 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Dados incompletos: protocol, name, email e cpf são obrigatórios." });
       }
 
+      // Validação de 1 pedido por CPF
+      // const cpfCheck = await client.execute({
+      //   sql: "SELECT id FROM pedidos WHERE cpf = ?",
+      //   args: [order.cpf]
+      // });
+
+      // if (cpfCheck.rows && cpfCheck.rows.length > 0) {
+      //   return res.status(400).json({ error: "Já existe um pedido registrado com este CPF. O limite é de 1 produto por pessoa." });
+      // }
+
       let diasPrazo = 30; // PAC por padrão ou fallback
       if (order.shipping && order.shipping.toUpperCase().includes('SEDEX')) {
         diasPrazo = 20; // SEDEX mais rápido
@@ -116,7 +126,19 @@ export default async function handler(req, res) {
             redirect_url: `${protocol}://${host}/track?p=${order.protocol}`,
             webhook_url: `${protocol}://${host}/api/infinitepay-webhook`,
             order_nsu: order.protocol,
-            items: items
+            items: items,
+            customer: {
+              name: order.name,
+              email: order.email,
+              phone_number: order.phone ? "+55" + order.phone.replace(/\D/g, '') : undefined
+            },
+            address: order.addressData ? {
+              cep: order.addressData.cep,
+              street: order.addressData.street,
+              neighborhood: order.addressData.neighborhood,
+              number: order.addressData.number,
+              complement: order.addressData.complement
+            } : undefined
           })
         });
 
@@ -130,8 +152,8 @@ export default async function handler(req, res) {
           console.error("Erro InfinitePay API:", errMsg);
           return res.status(400).json({ error: "Erro ao gerar link de pagamento. Verifique a tag InfinitePay configurada e tente novamente." });
         }
-      } catch (err) { 
-        console.error("Erro requisição InfinitePay:", err); 
+      } catch (err) {
+        console.error("Erro requisição InfinitePay:", err);
         return res.status(500).json({ error: "Serviço de pagamento indisponível no momento. Tente novamente." });
       }
 

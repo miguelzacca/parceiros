@@ -765,6 +765,13 @@ document.addEventListener('DOMContentLoaded', () => {
       phone: $('#phone').value,
       email: $('#email').value,
       address: `${$('#street').value}, ${$('#number').value} - ${$('#neighborhood').value}, ${$('#city').value}/${$('#state').value} - CEP ${$('#cep').value}`,
+      addressData: {
+        cep: $('#cep').value.replace(/\D/g, ''),
+        street: $('#street').value,
+        neighborhood: $('#neighborhood').value,
+        number: $('#number').value,
+        complement: $('#complement').value
+      },
       complement: $('#complement').value,
       shipping: 'Expresso',
       productName: selectedProduct.name,
