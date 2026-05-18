@@ -1450,31 +1450,47 @@ body {
   font-weight: 600;
 }
 
+/* ===== DESKTOP BLOCKER ===== */
+.desktop-blocker {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--bg-dark);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.blocker-content {
+  background: var(--bg-card);
+  border: 1px solid var(--glass-border);
+  padding: 3rem 2rem;
+  border-radius: var(--radius-lg);
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+}
+
+.blocker-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  animation: floatIcon 3s ease-in-out infinite;
+}
+
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (min-width: 481px) {
-  body {
-    align-items: center;
-    padding: 1rem 0;
-  }
-
   .app-container {
-    border-radius: 32px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-    border: 1px solid var(--glass-border);
-    background: rgba(6, 6, 8, 0.92);
-    backdrop-filter: blur(20px);
-    min-height: auto;
-    max-height: 92vh;
-    overflow-y: auto;
+    display: none !important;
   }
-
-  .app-container::-webkit-scrollbar {
-    width: 5px;
-  }
-
-  .app-container::-webkit-scrollbar-thumb {
-    background: var(--glass-border);
-    border-radius: 3px;
+  
+  .desktop-blocker {
+    display: flex;
   }
 }
 
